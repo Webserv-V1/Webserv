@@ -8,20 +8,21 @@
 * 2022.03.08 ~ 
 
 ### 요약 :
-1. 이 과제는 HTTP 서버인 **nginx**를 만듭니다.
+1. 이 과제는 HTTP 서버인 [nginx](https://whatisthenext.tistory.com/123)를 만듭니다.
 2. 실제 **HTTP RFC(7230~7235)**와 다릅니다. 
 3. 실제 브라우저로 테스트 했습니다.
-4. 클라이언트와 서버 간의 통신은 **Hypertext Transfer** 프로토콜을 사용한다고 가정합니다.
+4. 클라이언트와 서버 간의 통신은 [Hypertext Transfer 프로토콜](https://docs.oracle.com/cd/E19857-01/817-7510/agaphttp.html)을 사용한다고 가정합니다.
 5. 트래픽이 많은 웹 사이트에 여러 웹 서버를 사용할 수 있도록 구현햇습니다.
-
 6. 일반적으로 웹 브라우저 또는 웹 크롤러(클라이언트)와 같은 사용자 에이전트는 다음을 통해 통신을 시작합니다.
 	* HTTP를 사용하여 특정 리소스를 요청하면 서버가 해당 리소스의 내용으로 응답하거나, 그렇게 할 수 없는 경우에는 오류 메시지로 응답합니다.
 	* 리소스는 일반적으로 서버의 보조 스토리지에 있는 실제 파일이지만, 반드시 그런 것은 아니며 웹 서버가 구현되는 방법에 따라 다르게 구현해도 됩니다.
-
 7. 주요 기능은 콘텐츠를 제공하는 것이지만, HTTP의 전체 구현은 클라이언트로부터 콘텐츠를 받는 방법도 포함됩니다. 이 기능은 파일 업로딩을 포함한 웹폼 제출에 사용됩니다. 
 
 # 2. 세부 명세서(Mandatory part) 🐹
 ### 허용함수
+
+* [외부함수 블로그 정리한거!](https://velog.io/@hey-chocopie/webserve-%EC%99%B8%EB%B6%80%ED%97%88%EC%9A%A9%ED%95%A8%EC%88%98)
+
 ```
 Everything in C++ 98. htons, htonl, ntohs, ntohl,
 select, poll, epoll (epoll_create, epoll_ctl,
@@ -35,7 +36,7 @@ inet_addr, setsockopt, getsockname, fcntl.
 3. 더 많은 C 함수가 필요한 경우 사용할 수 있지만 항상 C++를 선호합니다.
 4. 컴파일은 C++ 98이어야 합니다.
 5. 외부라이브러리 없음, 부스트 없음, 등.
-6. 가능한 c++을 써라(예를 들어 헤더파일에  cstring로 표기해라. string.h가 아니라)
+6. 가능한 c++을 써라(예를 들어 헤더파일에 cstring로 표기해라. string.h가 아니라)
 7. 서버는 선택한 웹 브라우저와 호환되어야 합니다.
 8. nginx는 **HTTP 1.1**을 준수하며 헤더 및 응답 동작을 비교하는 데 사용할 수 있습니다.
 9. 주제와 규모에서 여론을 통해 언급 할 것입니다. 그러나 **select, kqueue, epoll** 는 동등하게 동작합니다.
@@ -53,7 +54,7 @@ inet_addr, setsockopt, getsockname, fcntl.
 21. config file을 읽기 전에 poll(또는 이와 동등한 것)을 사용할 필요가 없습니다.
 22. 완전히 **정적인 웹사이트**를 제공할 수 있어야 합니다. (You should be able to serve a fully static website.)
 23. 클라이언트가 파일을 업로드 할 수 있어야한다
-24. HTTP 응답 **status codes** 는 정확해야 합니다.
+24. HTTP 응답 [status codes](https://ko.wikipedia.org/wiki/HTTP_%EC%83%81%ED%83%9C_%EC%BD%94%EB%93%9C) 는 정확해야 합니다.
 25. 최소한 **GET, POST 및 DELETE** 메소드 필요합니다.
 26. stress test는 서버가 어떤 비용을 치르더라도 계속 사용할 수 있어야 합니다
 27. 당신의 서버는 여러 포트에서 수신대기 할 수 있다.(See config file).
@@ -70,7 +71,28 @@ inet_addr, setsockopt, getsockname, fcntl.
 
 * 각 서버의 포트나 호스트를 선택하세요.
 
+# 4. nginx 기본구조.
+```
+.
+├── fastcgi.conf
+├── fastcgi.conf.default
+├── fastcgi_params
+├── fastcgi_params.default
+├── koi-utf
+├── koi-win
+├── mime.types
+├── mime.types.default
+├── nginx.conf
+├── nginx.conf.default
+├── scgi_params
+├── scgi_params.default
+├── servers
+├── uwsgi_params
+├── uwsgi_params.default
+└── win-utf
 
+1 directory, 15 files
+```
 
 # 4. 프로젝트 기반 지식 ✍️
 
