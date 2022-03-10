@@ -60,7 +60,8 @@ int		main(int argc, char **argv)
 
         // 5. 클라이언트와 연결된 socket을 통해 데이터를 송수신한다.
         while((str_len=read(clnt_sock, message, BUF_SIZE)) != 0)
-            write(clnt_sock, message, str_len);
+			write(1, message, str_len);
+            //write(clnt_sock, message, str_len);
 
         close(clnt_sock);
     }

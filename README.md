@@ -70,6 +70,26 @@ inet_addr, setsockopt, getsockname, fcntl.
 >당신은 ft_services나 진행했던 서버 파트에서 configuration file에 대한 영감을 받을 수 있습니다. 
 
 * 각 서버의 포트나 호스트를 선택하세요.
+* server_names를 설정해도 되고 안 해도 됩니다.
+* host:port의 첫 번째 서버가 이 host:port의 디폴트 경로가 될 것입니다. (다른 어떤 서버에 속하지 않을 경우 이 서버가 응답)
+* 디폴트 에러 페이지를 설정하세요.
+* 클라이언트의 본문(body) 사이즈를 설정하세요.
+* 다음과 같은 규칙을 따라 하나 혹은 여러 개의 경로(route)를 설정하세요. (경로는 regexp를 사용하지 않음)
+	* 경로에서 허용되는 HTTP 메소드의 리스트를 정의
+	* HTTP redirection을 정의
+	* 파일을 찾아야 하는 디렉터리 혹은 파일을 정의
+		* 예를 들어, url "/kapouet"가 "/tmp/www"로 root되어 있다면 url "/kapouet/pouic/toto/pouet"는 "/tmp/www/pouic/toto/pouet"을 의미합니다.
+	* 디렉터리 리스팅을 on/off 할 수 있어야 합니다.
+	* 요청이 디렉터리일 때 응답해줄 디폴트 파일이 있어야 합니다.
+	* 특정 파일 확장자에 대해 CGI를 실행 (ex - .php)
+		* CGI를 직접 호출하지 않기 때문에 전체 경로를 PATH_INFO로 사용
+		* chuncked request의 경우 서버에서 이어붙이는 작업을 실행해야 하고 이때 CGI는EOF를 본문(body)의 끝으로 인식합니다.
+		* CGI의 출력에 대해서도 마찬가지로 content_length가 반환되지 않은 경우 EOF가 본문(body)의 끝을 의미합니다.
+		* 프로그램은 요청 파일을 첫 번쨰 인자로 주고 CGI를 호출해야 합니다.
+		* CGI는 상대 경로로 파일 접근을 할 때도 올바른 디렉터리에서 실행되야 합니다.
+		* 서버는 하나의 CGI로 작동해야 합니다.(php-cgi, python 등등)
+	* 경로(route)가 업로드된 파일을 수락할 수 있어야 하고 해당 파일이 어디에 저장되야 하는지 구성해야 합니다. 
+* 기본 베이직 파일부터 여러 특징들을 설명하는 여러 개의 configuration file을 함께 제출해서 평가 때 보여줘야 합니다. 
 
 # 4. nginx 기본구조.
 ```
