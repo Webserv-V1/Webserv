@@ -36,13 +36,12 @@ public :
 	int location_i;
 	int location_flag;
 
-	std::vector<std::string>			location_path;
+	std::vector<location>		v_l;
+	std::vector<std::string>	v_listen; //[0] 포트 [1 ~ 4] ip
 	std::string					server_name;
 	std::string					error_page;
-	std::vector<std::string>	v_listen; //[0] 포트 [1 ~ 4] ip
-	std::vector<location>		v_l;
-	//std::map< std::string, std::vector<std::string> >	m_location;
-	
+	std::vector<std::string>	location_path;
+
 	server(void)
 	{
 		location_i = -1;
@@ -87,11 +86,149 @@ void check_invalid(std::string &readLine, std::string com, int i)
 		throw wrong_configfile_data_1();
 }
 
+void check_closebrackket_order(config &cf)
+{
+	if(cf.s_bracket_open_order.empty())
+		throw bracket_order_fail();
+	if (cf.s_bracket_open_order.top() == "server")
+		cf.server_flag--;
+	else if(cf.s_bracket_open_order.top() == "location")
+		cf.v_s[cf.server_i].location_flag--;
+	else
+		throw bracket_order_fail();
+	cf.s_bracket_open_order.pop();
+}
+
+void input_data(config &cf, std::string &save_data, int &input_flag, std::string readLine, int i)
+{
+	save_data += readLine[i];	
+	if(readLine[i + 1] == ' ' || readLine[i + 1] == '#' || i + 1 == readLine.size())
+	{
+		//설명 : input_data 0 은 location 일때,
+		//설명 : input_flag 1~3는server클래스 데이터 저장.
+		//설명 : input_flag 3 보다 큰 값은 location저장.
+		if(input_flag == 1)
+			cf.v_s[cf.server_i].server_name = save_data;
+		else if(input_flag == 2)
+			cf.v_s[cf.server_i].v_listen.push_back(save_data);
+		else if(input_flag == 3)
+			cf.v_s[cf.server_i].error_page = save_data;
+		else if(input_flag > 3)
+			cf.v_s[cf.server_i].v_l[cf.v_s[cf.server_i].location_i].m_location[cf.v_location_invalid_key[input_flag - 3]].push_back(save_data);
+		save_data = "";
+	}
+}
+
+void after_server(config &cf, int &i, std::string &readLine)
+{
+	check_invalid(readLine, "server", i);
+	cf.server_i++;
+	cf.server_flag++;
+	cf.v_s.push_back(server());
+	cf.bracket++;
+	cf.s_bracket_open_order.push("server");
+	i = i + 5;
+}
+
+void after_location(config &cf, int &i, std::string &readLine)
+{
+	cf.v_s[cf.server_i].location_i++;
+	cf.v_s[cf.server_i].location_flag++;
+	cf.bracket++;
+	cf.s_bracket_open_order.push("location");
+	cf.v_s[cf.server_i].v_l.push_back(location());
+	std::string location_path = "";
+	int flag = 0;
+	for(i = i + 1; i <readLine.size(); i++)
+	{
+		if(readLine[i] == ' ' || readLine[i] == '	' || readLine[i] == '#' || readLine.size() - 1 == i)
+		{
+			if(flag == 1)
+			{
+				cf.v_s[cf.server_i].location_path.push_back(location_path);
+				flag = 2;
+			}
+			else if(flag == 0 && (readLine.size() - 1 == i || readLine[i] == '#'))
+			{
+				location_path += readLine[i];
+				if(readLine[i] != ' ' || readLine[i] != '	')
+					cf.v_s[cf.server_i].location_path.push_back(location_path);
+				else
+				{
+					throw wrong_configfile_data_2();
+				}
+			}
+			if(flag == 2 && readLine[i] == '#')
+			{
+				i = readLine.size() - 1;
+				break;
+			}
+		}
+		else
+		{
+			if(flag == 2)
+			{
+				throw wrong_configfile_data_2();
+			}
+			location_path += readLine[i];
+			flag = 1;
+		}
+	}
+}
+
+int check_right_value_for_sever(config &cf, std::string &readLine, int &i)
+{
+	int key_i = 0;
+
+	for(key_i = 0; key_i < cf.v_server_invalid_key.size(); key_i++)
+		if(readLine.substr(i, cf.v_server_invalid_key[key_i].size()) == cf.v_server_invalid_key[key_i])
+			break;
+	if(key_i == cf.v_server_invalid_key.size())
+		throw wrong_configfile_data_2();
+	i = i + (cf.v_server_invalid_key[key_i].size() - 1);
+	return key_i;
+}
+
+
+void divide_the_situation(config &cf, int &input_flag, std::string &readLine, int &i)
+{
+	if(cf.server_flag == 0)
+		after_server(cf, i, readLine);
+	else if(cf.server_flag != 0 && cf.v_s[cf.server_i].location_flag == 0)
+	{
+		// 설명: server{
+		// 설명: 이 상황일떄,
+		int key_i = check_right_value_for_sever(cf, readLine, i);
+		if(key_i == 0)	//설명 : readLine이 location임.
+			after_location(cf, i, readLine); 
+		else			//설명 : key_i==1,2,3일때 "server_name", "error_page"
+			input_flag = key_i;
+	}
+	else if(cf.server_flag != 0 && cf.v_s[cf.server_i].location_flag != 0)
+	{
+		// 설명 : server{
+		// 설명 : location{
+		// 설명 :	이 상황일떄,
+		int key_i = 0;
+		for(key_i = 0; key_i < cf.v_location_invalid_key.size(); key_i++)
+			if(readLine.substr(i, cf.v_location_invalid_key[key_i].size()) == cf.v_location_invalid_key[key_i])
+			{
+				break;
+			}
+		if(key_i == cf.v_location_invalid_key.size())
+		{
+			throw wrong_configfile_data_2();
+		}
+		i = i + (cf.v_location_invalid_key[key_i].size() - 1);
+		input_flag = key_i + 3;
+	}
+}
+
 void set_cf(config &cf, std::string readLine)
 {
-	std::cout << readLine << std::endl;
-	int input_flag = 0; //값 저장해야하는 경우.
-	std::string tmp = "";
+	int input_flag = 0;
+	std::string save_data = "";
+
 	for(int i = 0; i < readLine.size(); i++)
 	{
 		if(readLine[i] == '#')
@@ -99,162 +236,19 @@ void set_cf(config &cf, std::string readLine)
 		else if(readLine[i] == ' ' || readLine[i] == '	')
 			;
 		else if(readLine[i] == '}')
-		{
-			if(cf.s_bracket_open_order.empty())
-				throw bracket_order_fail();
-			if (cf.s_bracket_open_order.top() == "server")
-				cf.server_flag--;
-			else if(cf.s_bracket_open_order.top() == "location")
-				cf.v_s[cf.server_i].location_flag--;
-			cf.s_bracket_open_order.pop();
-		}
+			check_closebrackket_order(cf);
 		else
 		{
-			//bracket 은 server, location같은게 오고난뒤 1로 해줌. 그리고 {가 나오고 나면 0으로 치환.
 			if(input_flag != 0)
-			{
-				tmp += readLine[i];
-				if(readLine[i + 1] == ' ' || readLine[i + 1] == '#' || i + 1 == readLine.size())
-				{
-					//input_flag 1~2는server클래스 데이터 저장.
-					if(input_flag == 1)
-						cf.v_s[cf.server_i].server_name = tmp;
-					else if(input_flag == 2)
-						cf.v_s[cf.server_i].v_listen.push_back(tmp);
-					else if(input_flag == 3)
-						cf.v_s[cf.server_i].error_page = tmp;
-					else if(input_flag > 3)
-						cf.v_s[cf.server_i].v_l[cf.v_s[cf.server_i].location_i].m_location[cf.v_location_invalid_key[input_flag - 3]].push_back(tmp);
-					tmp = "";
-				}
-			}
+				input_data(cf, save_data, input_flag, readLine, i);
 			else if(cf.bracket == 1 && readLine[i] == '{')
 				cf.bracket--;
+				//설명: bracket 은 server, location 같은 블록 이름이 온뒤 1로 해줌. 
+				//설명: 그리고 {가 나오고 나면 0으로 치환.
 			else if (cf.bracket == 1)
-			{
-				std::cout << readLine[i] << "  "<< i << std::endl;
 				throw open_bracket_after_fail();
-			}
 			else
-			{
-				if(cf.server_flag == 0)
-				{
-					check_invalid(readLine, "server", i);
-					cf.server_i++;
-					cf.server_flag++;
-					cf.v_s.push_back(server());
-					cf.bracket++;
-					cf.s_bracket_open_order.push("server");
-					i = i + 5;
-				}
-				else if(cf.server_flag != 0 && cf.v_s[cf.server_i].location_flag == 0)
-				{
-					// server{
-					// 이 상황일떄,
-					int key_i = 0;
-					for(key_i = 0; key_i < cf.v_server_invalid_key.size(); key_i++)
-						if(readLine.substr(i, cf.v_server_invalid_key[key_i].size()) == cf.v_server_invalid_key[key_i])
-							break;
-					if(key_i == cf.v_server_invalid_key.size())
-					{
-						throw wrong_configfile_data_2();
-					}
-					i = i + (cf.v_server_invalid_key[key_i].size() - 1);
-					if(key_i == 0) //i==0일때는 readLine이 location임.
-					{
-						cf.v_s[cf.server_i].location_i++;
-						cf.v_s[cf.server_i].location_flag++;
-						cf.bracket++;
-						cf.s_bracket_open_order.push("location");
-						cf.v_s[cf.server_i].v_l.push_back(location());
-						std::string location_path = "";
-						int flag = 0;
-						for(i = i + 1; i <readLine.size(); i++)
-						{
-							if(readLine[i] == ' ' || readLine[i] == '	' || readLine[i] == '#' || readLine.size() - 1 == i)
-							{
-								if(flag == 1)
-								{
-									cf.v_s[cf.server_i].location_path.push_back(location_path);
-									flag = 2;
-								}
-								else if(flag == 0 && (readLine.size() - 1 == i || readLine[i] == '#'))
-								{
-									if(readLine[i] != ' ' || readLine[i] != '	')
-										cf.v_s[cf.server_i].location_path.push_back(location_path);
-									else
-									{
-										std::cout << "dlrjdisi" <<std::endl;
-										throw wrong_configfile_data_2();
-									}
-								}
-								if(flag == 2 && readLine[i] == '#')
-								{
-									i = readLine.size() - 1;
-									break;
-								}
-							}
-							else
-							{
-								if(flag == 2)
-								{
-									throw wrong_configfile_data_2();
-								}
-								location_path += readLine[i];
-								flag = 1;
-							}
-
-//							if(flag == 1 && (readLine[i] == ' ' || readLine[i] == '#' || readLine[i] == '	'))
-//								cf.v_s[cf.server_i].location_path = location_path;
-//							if(readLine[i] == '#')
-//							{
-//								cf.v_s[cf.server_i].location_path.push_back(location_path);
-//								i = readLine.size() - 1;
-//							}
-//							else if(readLine[i] == ' ' || readLine[i] == '	' || readLine.size() - 1 == i)
-//							{
-//								if(flag == 1)
-//								{
-//									cf.v_s[cf.server_i].location_path.push_back(location_path);
-//									flag = 2;
-//								}
-//							}
-//							else if(readLine[i] != ' ')
-//							{
-//								if (flag == 2)
-//								{
-//									std::cout << " rjfflskrdy? : " << readLine[i]<< std::endl;
-//									throw wrong_configfile_data_2();
-//								}
-//								location_path += readLine[i];
-//								flag = 1;
-//							}
-						}
-					}
-					else //key_i==1,2, 3일때 "server_name", "error_page"
-					{
-						input_flag = key_i; //값 저장해야하는 경우.
-					}
-				}
-				else if(cf.server_flag != 0 && cf.v_s[cf.server_i].location_flag != 0)
-				{
-					// server{
-					//		location{
-					//			이 상황일떄,
-					int key_i = 0;
-					for(key_i = 0; key_i < cf.v_location_invalid_key.size(); key_i++)
-						if(readLine.substr(i, cf.v_location_invalid_key[key_i].size()) == cf.v_location_invalid_key[key_i])
-						{
-							break;
-						}
-					if(key_i == cf.v_location_invalid_key.size())
-					{
-						throw wrong_configfile_data_2();
-					}
-					i = i + (cf.v_location_invalid_key[key_i].size() - 1);
-					input_flag = key_i + 3; //값 저장해야하는 경우.
-				}
-			}
+				divide_the_situation(cf, input_flag, readLine, i);
 		}
 	}
 }
@@ -275,7 +269,44 @@ void config_parsing(config &cf)
 	else
 		throw open_fail();
 }
+void print_cf_data(config &cf)
+{
+	std::cout << "========= print confile data ========== " << std::endl;
+	for(int i  = 0; i < cf.v_s.size(); i++)
+	{
+		std::cout << "======================================== v_s [ " << i << " ] ======================================" <<std::endl;
 
+		std::cout << "location_path :";
+		for(int j = 0; j < cf.v_s[i].location_path.size(); j++)
+			std::cout << " " << cf.v_s[i].location_path[j];
+		std::cout << std::endl;
+		std::cout << "server_name : " << cf.v_s[i].server_name << std::endl;
+		std::cout << "listen :";
+		for(int j = 0; j < cf.v_s[i].v_listen.size(); j++)
+			std::cout << " " << cf.v_s[i].v_listen[j];
+		std::cout << std::endl;
+		std::cout << "error_page : "<< cf.v_s[i].error_page << std::endl;
+		int zz = 0;
+		for(int z = 0; z < cf.v_s[i].v_l.size(); z++)
+		{
+			std::cout << "=========== v_s [ " << i << " ].map [ " << z << "  ===========" <<std::endl;
+			for(std::map< std::string, std::vector<std::string> >::iterator iter = cf.v_s[i].v_l[z].m_location.begin(); iter!= cf.v_s[i].v_l[z].m_location.end(); iter++)
+			{
+
+				std::cout << iter->first << " :";
+				for(int z = 0; z < iter->second.size(); z++)
+				{
+					std::cout << " " << iter->second[z];
+				}
+				std::cout << std::endl;
+				zz++;
+
+			}
+		}
+		std::cout << std::endl;
+	}
+
+}
 
 int main(void)
 {
@@ -283,41 +314,7 @@ int main(void)
 		config cf("webserv.conf");
 
 		config_parsing(cf);
-		std::cout << std::endl;
-		std::cout << " test == test " << std::endl;
-		for(int i  = 0; i < cf.v_s.size(); i++)
-		{
-			std::cout << "======================================== v_s [ " << i << " ] ======================================" <<std::endl;
-
-			std::cout << "location_path :";
-			for(int j = 0; j < cf.v_s[i].location_path.size(); j++)
-				std::cout << " " << cf.v_s[i].location_path[j];
-			std::cout << std::endl;
-			std::cout << "location : " << cf.v_s[i].location_path[1] << std::endl;
-			std::cout << "server_name : " << cf.v_s[i].server_name << std::endl;
-			std::cout << "listen :";
-			for(int j = 0; j < cf.v_s[i].v_listen.size(); j++)
-				std::cout << " " << cf.v_s[i].v_listen[j];
-			std::cout << std::endl;
-			std::cout << "error_page : "<< cf.v_s[i].error_page << std::endl;
-			int zz = 0;
-			for(int z = 0; z < cf.v_s[i].v_l.size(); z++)
-			{
-				std::cout << "=========== v_s [ " << i << " ].map [ " << z << "  ===========" <<std::endl;
-				for(std::map< std::string, std::vector<std::string> >::iterator iter = cf.v_s[i].v_l[z].m_location.begin(); iter!= cf.v_s[i].v_l[z].m_location.end(); iter++)
-				{
-	
-					std::cout << iter->first << " :";
-					for(int z = 0; z < iter->second.size(); z++)
-					{
-						std::cout << " " << iter->second[z];
-					}
-					std::cout << std::endl;
-					zz++;
-	
-				}
-			}
-		}
+		print_cf_data(cf);
 	}
 	catch (std::exception & e)
 	{
