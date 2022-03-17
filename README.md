@@ -1,5 +1,4 @@
 # webserv
-teeeee
 # 1. 프로젝트 소개 😮
 ### 소개 :
 * nginx 서버 만들었습니다.
@@ -67,7 +66,7 @@ inet_addr, setsockopt, getsockname, fcntl.
 	다른 모든 flag는 금지합니다.
 
 # 3. config file에서 다음을 수행 할 수 있어야합니다. 😾
->당신은 ft_services나 진행했던 서버 파트에서 configuration file에 대한 영감을 받을 수 있습니다. 
+>당신은 ningx 서버 파트에서 configuration file에 대한 영감을 받을 수 있습니다. 
 
 * 각 서버의 포트나 호스트를 선택하세요.
 * server_names를 설정해도 되고 안 해도 됩니다.
