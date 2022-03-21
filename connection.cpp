@@ -1,4 +1,4 @@
-#include "connection.hpp"
+#include "./include/connection.hpp"
 
 connection::connection(fd_set &rfds) : server_size(0), fd_arr(), read_fds(rfds)
 {
