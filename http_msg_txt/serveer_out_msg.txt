@@ -1,0 +1,24 @@
+clnt sock - 4
+clnt sock - 5
+executing method(GET, POST, DELETE)
+fd: 4
+method: GET
+url: /
+version: HTTP/1.1
+is_invalid: 0
+<header>
+	key: Accept, value: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9
+	key: Accept-Encoding, value: gzip, deflate, br
+	key: Accept-Language, value: ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7
+	key: Cache-Control, value: max-age=0
+	key: Connection, value: keep-alive
+	key: Host, value: localhost:100
+	key: Sec-Fetch-Dest, value: document
+	key: Sec-Fetch-Mode, value: navigate
+	key: Sec-Fetch-Site, value: none
+	key: Sec-Fetch-User, value: ?1
+	key: Upgrade-Insecure-Requests, value: 1
+	key: User-Agent, value: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/89.0.4389.90 Safari/537.36
+	key: sec-ch-ua, value: "Google Chrome";v="89", "Chromium";v="89", ";Not A Brand";v="99"
+	key: sec-ch-ua-mobile, value: ?0
+<body>
