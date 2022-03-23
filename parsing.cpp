@@ -1,10 +1,5 @@
-#include <string>
-#include <fstream>
-#include <iostream>
-#include <vector>
-#include <map>
-#include <exception>
 #include "./include/parsing.hpp"
+#include "./include/error.hpp"
 
 void check_invalid(std::string &readLine, std::string com, int i)
 {
@@ -313,20 +308,20 @@ void print_cf_data(config &cf)
 
 }
 
-int main(void)
-{
-	try{
-		config cf("webserv.conf");
-
-		config_parsing(cf);
-		print_cf_data(cf);
-	}
-	catch (std::exception & e)
-	{
-	    std::cerr << e.what() << std::endl;
-	}
-	catch (...)
-	{
-		std::cout << "error 인데, 여긴 타면 안되지..." << std::endl;
-	}
-}
+//int main(void)
+//{
+//	try{
+//		config cf("webserv.conf");
+//
+//		config_parsing(cf);
+//		print_cf_data(cf);
+//	}
+//	catch (std::exception & e)
+//	{
+//	    std::cerr << e.what() << std::endl;
+//	}
+//	catch (...)
+//	{
+//		std::cout << "error 인데, 여긴 타면 안되지..." << std::endl;
+//	}
+//}

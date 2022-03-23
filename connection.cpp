@@ -14,7 +14,7 @@ connection::connection(fd_set &rfds) : server_size(0), fd_arr(), read_fds(rfds)
 	memset(&serv_adr, 0, sizeof(serv_adr));
 	serv_adr.sin_family = AF_INET;
 	serv_adr.sin_addr.s_addr = htonl(INADDR_ANY);
-	serv_adr.sin_port = htons(100); //일단은 포트 번호 100로 설정
+	serv_adr.sin_port = htons(80); //일단은 포트 번호 100로 설정
 	if (bind(serv_sock, reinterpret_cast<struct sockaddr*>(&serv_adr), sizeof(serv_adr)) == -1)
 		throw (connection::bind_error());
 	//3. server socket에 클라이언트 접속 요청 대기할 수 있도록 - 일단 10개의 수신 대기열

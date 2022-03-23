@@ -1,5 +1,7 @@
 #include "./include/webserv.hpp"
 #include "./include/exec_request.hpp"
+#include "./include/parsing.hpp"
+//#include "./include/parsing.hpp"
 //void	exec_method(fd_set &write_fds, request &rq)
 //{
 //	//GET, POST, DELETE 메서드에 따라 실행
@@ -14,7 +16,7 @@
 //	}
 //}
 
-bool connet_socket_and_parsing(IO_fd_set &fds, connection &cn, struct timeval &timeout, int &fd_num, request &rq)
+bool connect_socket_and_parsing(IO_fd_set &fds, connection &cn, struct timeval &timeout, int &fd_num, request &rq)
 {
 	fds.cpy_read_fds = fds.read_fds;
 	fds.cpy_write_fds = fds.write_fds;
@@ -49,7 +51,7 @@ bool connet_socket_and_parsing(IO_fd_set &fds, connection &cn, struct timeval &t
 	return false;
 }
 
-void	exec_webserv()
+void	exec_webserv(config &cf)
 {
 	IO_fd_set		fds;
 	connection		cn(fds.read_fds);
@@ -59,10 +61,9 @@ void	exec_webserv()
 
 	while (true)
 	{
-		//exec_request
-		if(connet_socket_and_parsing(fds, cn, timeout, fd_num, rq) == true)
+		if(connect_socket_and_parsing(fds, cn, timeout, fd_num, rq) == true)
 			continue;
-		exec_request(fds.write_fds, rq);
+		exec_request(cf, fds.write_fds, rq);
 	}
 }
 
@@ -70,12 +71,20 @@ int		main(void)
 {
 	try
 	{
-		exec_webserv(); //나중에 config 받아서~
+		config cf("webserv.conf");
+		config_parsing(cf);
+		//print_cf_data(cf); //이걸로 cf출력 볼수 있습니다. 
+
+		exec_webserv(cf); //나중에 config 받아서~
 	}
 	catch(const std::exception& e)
 	{
 		std::cerr << e.what() << '\n';
 		return (1);
+	}
+	catch(...)
+	{
+		std::cout << "error 인데, 여긴 타면 안되지..." << std::endl;
 	}
 	return (0);
 }
