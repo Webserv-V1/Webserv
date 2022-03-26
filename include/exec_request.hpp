@@ -2,7 +2,8 @@
 # define EXEC_REQUEST_HPP
 # include "connection.hpp"
 # include "request.hpp"
+# include "parsing.hpp"
 
-void    exec_request(fd_set &write_fds, request &rq);
+void    exec_request(config &cf, fd_set &write_fds, request &rq);
 
 #endif
