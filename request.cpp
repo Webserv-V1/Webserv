@@ -50,7 +50,7 @@ void					request::insert(int clnt_fd, std::vector<std::string> msg)
 {
 	request::first_type		first(clnt_fd);
 	request::second_type	second = parse(first, msg);
-	rq.insert(std::make_pair(first, second));
+	rq.push_back(std::make_pair(first, second));
 }
 
 void					request::erase(request::iterator it)
