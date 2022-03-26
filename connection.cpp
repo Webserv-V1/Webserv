@@ -85,6 +85,8 @@ void					connection::connect_client(int serv_sock)
 	//4.클라이언트 접속 요청 수락하는 부분 
 	if ((clnt_sock = accept(serv_sock, reinterpret_cast<struct sockaddr*>(&clnt_adr), &adr_sz)) == -1)
 		throw (connection::accept_error());
+	std::cout << INADDR_ANY << std::endl;
+	std::cout << "IP : " << ntohl(clnt_adr.sin_addr.s_addr) << "\nPort : " << ntohs(clnt_adr.sin_port) << std::endl;
 	FD_SET(clnt_sock, &read_fds);
 	fcntl(clnt_sock, F_SETFL, O_NONBLOCK); //각 클라이언트 fd를 논블로킹으로 설정
 	fd_arr.push_back(fd_info(clnt_sock, serv_sock));
@@ -93,8 +95,8 @@ void					connection::connect_client(int serv_sock)
 
 void					connection::disconnect_client(int clnt_sock)
 {
+	std::cout << "in disconnecting client - " << clnt_sock << std::endl;
 	std::vector<fd_info>::iterator it;
-
 	for (it = fd_arr.begin(); it != fd_arr.end(); ++it)
 	{
 		if (it->fd == clnt_sock)
