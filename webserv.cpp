@@ -16,7 +16,6 @@
 //	}
 //}
 
-//bool connect_socket_and_parsing(IO_fd_set *fds, connection *cn, struct timeval *timeout, int *fd_num, request *rq)
 bool	connect_socket_and_parsing(IO_fd_set *fds, connection *cn, request *rq)
 {
 	struct timeval	timeout;
@@ -60,13 +59,10 @@ void	exec_webserv(config &cf)
 {
 	IO_fd_set		fds;
 	connection		cn(fds.read_fds);
-	//struct timeval	timeout;
-	//int				fd_num;
 	request			rq;
 
 	while (true)
 	{
-		//if(connect_socket_and_parsing(&fds, &cn, &timeout, &fd_num, &rq) == true)
 		if (connect_socket_and_parsing(&fds, &cn, &rq))
 			continue;
 		exec_request(cf, fds.write_fds, rq);
