@@ -16,15 +16,18 @@
 //	}
 //}
 
-bool connect_socket_and_parsing(IO_fd_set *fds, connection *cn, struct timeval *timeout, int *fd_num, request *rq)
+bool	connect_socket_and_parsing(IO_fd_set *fds, connection *cn, request *rq)
 {
+	struct timeval	timeout;
+	int				fd_num;
+
 	(*fds).cpy_read_fds = (*fds).read_fds;
 	(*fds).cpy_write_fds = (*fds).write_fds;
-	(*timeout).tv_sec = 1; //1초로 타임 제한
-	(*timeout).tv_usec = 0;
-	if (((*fd_num) = select((*cn).max_fd() + 1, &((*fds).cpy_read_fds), &((*fds).cpy_write_fds), 0, timeout)) == -1)
+	timeout.tv_sec = 1; //1초로 타임 제한
+	timeout.tv_usec = 0;
+	if ((fd_num = select((*cn).max_fd() + 1, &((*fds).cpy_read_fds), &((*fds).cpy_write_fds), 0, &timeout)) == -1)
 		throw (select_error());
-	else if (!(*fd_num))
+	else if (!fd_num)
 		return true;
 	for (connection::iterator it = (*cn).fd_arr_begin(); it != (*cn).fd_arr_end(); ++it)
 	{	
@@ -56,13 +59,11 @@ void	exec_webserv(config &cf)
 {
 	IO_fd_set		fds;
 	connection		cn(fds.read_fds);
-	struct timeval	timeout;
-	int				fd_num;
 	request			rq;
 
 	while (true)
 	{
-		if(connect_socket_and_parsing(&fds, &cn, &timeout, &fd_num, &rq) == true)
+		if (connect_socket_and_parsing(&fds, &cn, &rq))
 			continue;
 		exec_request(cf, fds.write_fds, rq);
 	}

@@ -26,15 +26,15 @@ public:
 
 class request
 {
-private:
-	typedef base_request								first_type; //클라이언트 fd, 첫 번쨰 줄에 오는 정보 파싱한 값, 전체적인 정보가 유효한지 알려주는 플래그 저장
-	typedef std::map<std::string, std::string>			second_type; //헤더와 본문 내용 map 형식으로 저장(본문의 key값은 빈 문자열로)
-
-	std::map<first_type, second_type>	rq; //각 요청 메세지를 맵 형태로 저장 - 현재 처리가 필요한 요청들만 저장해뒀다가 처리해준 뒤 삭제
 public:
-	typedef std::map<first_type, second_type>	value_type;
-	typedef value_type::iterator				iterator;
-
+	typedef base_request						first_type; //클라이언트 fd, 첫 번쨰 줄에 오는 정보 파싱한 값, 전체적인 정보가 유효한지 알려주는 플래그 저장
+	typedef std::map<std::string, std::string>	second_type; //헤더와 본문 내용 map 형식으로 저장(본문의 key값은 빈 문자열로)
+	typedef std::pair<first_type, second_type>	value_type;
+	typedef std::vector<value_type>				value_arr;
+	typedef value_arr::iterator					iterator;
+private:
+	value_arr	rq; //각 요청 메세지를 맵 형태로 저장 - 현재 처리가 필요한 요청들만 저장해뒀다가 처리해준 뒤 삭제
+public:
 	request(void) : rq() {}
 	~request(void) {}
 	iterator	rq_begin(void);
