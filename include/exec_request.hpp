@@ -4,6 +4,6 @@
 # include "request.hpp"
 # include "parsing.hpp"
 
-void    exec_request(config &cf, fd_set &write_fds, request &rq);
+void    exec_request(config &cf, fd_set &write_fds, request *rq, std::string &request_msg);
 
 #endif

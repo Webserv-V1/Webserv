@@ -75,6 +75,7 @@ void input_listen(config &cf, std::string &save_data, const int &input_data_cnt)
 					throw err_input_listen();
 			}
 		}
+		cf.v_s[cf.server_i].listen = cf.v_s[cf.server_i].v_listen[1] + ":" + cf.v_s[cf.server_i].v_listen[0];
 	}
 	return ;
 }
@@ -275,7 +276,10 @@ void print_cf_data(config &cf)
 		std::cout << std::endl;
 		std::cout << "listen :";
 		for(int j = 0; j < cf.v_s[i].v_listen.size(); j++)
+		{
 			std::cout << " " << cf.v_s[i].v_listen[j];
+			std::cout << " " << cf.v_s[i].listen;
+		}
 		std::cout << std::endl;
 		for(int z = 0; z < cf.v_s[i].v_error_page.size(); z++)
 		{

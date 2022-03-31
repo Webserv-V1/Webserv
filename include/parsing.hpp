@@ -39,9 +39,9 @@ public :
 
 class server{
 public :
-	int location_i;
-	int location_flag;
-
+	int			location_i;
+	int			location_flag;
+	std::string listen;
 	std::vector<location>		v_l;
 	std::vector<std::string>	v_listen; //[0] 포트 [1 ~ 4] ip
 	std::vector< std::pair<int, std::vector<std::string> > > v_error_page;
@@ -51,6 +51,7 @@ public :
 	{
 		v_listen.push_back("80");
 		v_listen.push_back("0.0.0.0");
+		listen = "127.0.0.1:80";
 		location_i = -1;
 		location_flag = 0;
 	}
