@@ -25,4 +25,15 @@ struct err_input_listen : std::exception {
   const char* what() const throw() {return "Error Occurred for input liten";}
 };
 
+struct config_error_location : std::exception {
+  const char* what() const throw() {return "configfile server not have location";}
+};
+
+struct config_error_server : std::exception {
+  const char* what() const throw() {return "configfile don't have server";}
+};
+struct config_error_root : std::exception {
+  const char* what() const throw() {return "configfile don't have root";}
+};
+
 #endif
