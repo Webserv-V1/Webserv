@@ -21,12 +21,13 @@ connection::connection(fd_set &rfds) : server_size(0), fd_arr(), read_fds(rfds)
 	if (listen(serv_sock, 10) == -1)
 		throw (connection::listen_error());
 	FD_SET(serv_sock, &read_fds); //read_fds에서 서버 fd 활성화
+	fcntl(serv_sock, F_SETFL, O_NONBLOCK);
 	//소켓 프로그래밍에서 4.클라이언트 접속 요청 수락하는 부분, 5.클라이언트와 연결된 소켓으로 데이터 송수신하는 부분은 다른 메서드에서
 }
 
 connection::~connection(void)
 {
-	for (int i = 0; i < server_size; i++)
+	for (int i = 0; i < fd_arr.size(); i++)
 		close(fd_arr[i].fd);
 }
 
@@ -68,10 +69,7 @@ fd_info					&connection::info_of_fd(int fd)
 	for (i = 0; i < (int)fd_arr.size(); i++)
 	{
 		if (fd_arr[i].fd == fd)
-		{
-			if (i < server_size)
-				break ;
-		}
+			break ;
 	}
 	return (fd_arr[i]);
 }
@@ -88,7 +86,6 @@ void					connection::connect_client(int serv_sock)
 	FD_SET(clnt_sock, &read_fds);
 	fcntl(clnt_sock, F_SETFL, O_NONBLOCK); //각 클라이언트 fd를 논블로킹으로 설정
 	fd_arr.push_back(fd_info(clnt_sock, serv_sock));
-	std::cout << "clnt sock - " << clnt_sock << std::endl; //여기서 출력해보면 브라우저로 한 번 접속해도 새로운 클라이언트가 2개 생김. 
 }
 
 void					connection::disconnect_client(int clnt_sock)
@@ -111,8 +108,8 @@ void					connection::get_client_msg(int clnt_sock, request &rq)
 	char	buf[BUF_SIZE + 1];
 
 	//5.클라이언트와 연결된 소켓으로 데이터 송수신하는 부분
-	if ((str_len = recv(clnt_sock, buf, BUF_SIZE, 0)) < 0) //다른 사람 코드 봤을 때 recv 한 번으로 해결하던데.. 나중에 다시 확인
-		throw (recv_error());
+	/*if ((str_len = recv(clnt_sock, buf, BUF_SIZE, 0)) < 0) //다른 사람 코드 봤을 때 recv 한 번으로 해결하던데.. 나중에 다시 확인
+		throw (connection::recv_error());
 	buf[str_len] = '\0';
 	concatenate_client_msg(info_of_fd(clnt_sock), buf); //해당 클라이언트에 문자열 이어서 저장
 	if (recv(clnt_sock, buf, BUF_SIZE, MSG_PEEK | MSG_DONTWAIT) < 0) //옵션을 줘서(대기열에서 빠지지 않고, 논블로킹) 다음에 읽을 문자열을 검사할 때 그 문자열이 없다면
@@ -121,7 +118,14 @@ void					connection::get_client_msg(int clnt_sock, request &rq)
 		parse_client_msg_by_line(info_of_fd(clnt_sock)); //이때까지 저장한 문자열을 '\n'기준으로 파싱
 		rq.insert(clnt_sock, info_of_fd(clnt_sock).split_msg);
 		//print_client_msg(clnt_sock); //해당 fd에 파싱된 내용 출력
-	}
+	}*/
+	if ((str_len = recv(clnt_sock, buf, BUF_SIZE, 0)) < 0)
+		throw (connection::recv_error());
+	buf[str_len] = '\0';
+	fd_info &clnt_info = info_of_fd(clnt_sock);
+	concatenate_client_msg(clnt_info, buf);
+	if (is_input_completed(clnt_info, rq)) //입력값을 다 받았는지 체크하면서 내부 처리(파싱 ..)
+		FD_CLR(clnt_sock, &read_fds);
 }
 
 void					connection::concatenate_client_msg(fd_info &clnt_info, std::string to_append)
@@ -131,7 +135,27 @@ void					connection::concatenate_client_msg(fd_info &clnt_info, std::string to_a
 	clnt_info.msg.append(to_append);
 }
 
-void					connection::parse_client_msg_by_line(fd_info &clnt_info)
+bool					connection::is_input_completed(fd_info &clnt_info, request &rq)
+{
+	if (clnt_info.body_flag == HEADER_NOT_PARSED && clnt_info.msg.rfind("\n\n") != std::string::npos)
+	{
+		parse_client_header_by_line(clnt_info); //헤더 내용까지만 파싱 (\n\n 오기 전까지만)
+		request::iterator it = rq.insert_header(clnt_info.fd, clnt_info.split_msg);
+		is_body_exist(clnt_info, it, rq);
+		if (clnt_info.body_flag == NO_BODY)
+		{
+			rq.insert(it, "");
+			return (true);
+		}
+	}
+	if (clnt_info.body_flag == TRANSFER_ENCODING)
+		return (is_transfer_encoding_completed(clnt_info, rq));
+	else if (clnt_info.body_flag == CONTENT_LENGTH)
+		return (is_content_length_completed(clnt_info, rq));
+	return (false);
+}
+
+void					connection::parse_client_header_by_line(fd_info &clnt_info)
 {
 	size_t	last = 0;
 	size_t	next = 0;
@@ -142,14 +166,84 @@ void					connection::parse_client_msg_by_line(fd_info &clnt_info)
 		last = next + 1;
 		if (clnt_info.msg[last] == '\n') //헤더와 본문 사이에 개행을 하나 더 둠. -> 개행이 두 번 오고 난 다음에 오는 값들은 한 번에 저장
 		{
-			clnt_info.split_msg.push_back("");
 			last++;
 			break ;
 		}
 	}
 	//본문 저장 - 본문이 존재하지 않는다면 ""만 저장
-	next = clnt_info.msg.rfind("\n"); //본문의 마지막도 \n로 끝나는 지는 모르겠지만 이것도 나중에 체크
-	clnt_info.split_msg.push_back(clnt_info.msg.substr(last, next - last));
+	//next = clnt_info.msg.rfind("\n"); //본문의 마지막도 \n로 끝나는 지는 모르겠지만 이것도 나중에 체크
+	//clnt_info.split_msg.push_back(clnt_info.msg.substr(last, next - last));
+	
+	/*clnt_info.split_msg.push_back(clnt_info.msg.substr(last));
+	print_client_msg(clnt_info.fd);*/
+
+	clnt_info.msg = clnt_info.msg.substr(last); //\n\n 앞의 내용들은 파싱해서 저장해줬으니 그 뒷내용들만 msg에 다시 저장
+}
+
+void					connection::parse_client_body(fd_info &clnt_info, request &rq)
+{
+	size_t	last = 0;
+	size_t	next = 0;
+	size_t	len;
+	std::string	res("");
+
+	std::cout << "[parse_client_body]\n";
+	while ((next = clnt_info.msg.find("\n", last)) != std::string::npos)
+	{
+		if (!(len = stoi(clnt_info.msg.substr(last, next - last)))) //c++11?
+			break ;
+		last = next + 2;
+		res.append(clnt_info.msg.substr(last, len));
+		last += (len + 1);
+	}	
+	request::iterator it = rq.find_clnt_in_tmp(clnt_info.fd);
+	rq.insert(it, res);
+}
+
+void					connection::is_body_exist(fd_info &clnt_info, request::iterator &it, request &rq)
+{
+	if (!rq.which_method(it, "POST"))
+	{
+		clnt_info.body_flag = NO_BODY;
+		return ;
+	}
+	bool	te_flag = rq.is_existing_header(it, "Transfer-Encoding");
+	bool	cl_flag = rq.is_existing_header(it, "Content-Length");
+	if (te_flag && cl_flag)
+		rq.set_error(it, 400); //400이 맞는지 확인
+	if (te_flag)
+		clnt_info.body_flag = TRANSFER_ENCODING;
+	else if (cl_flag)
+		clnt_info.body_flag = CONTENT_LENGTH;
+	else
+		clnt_info.body_flag = NO_BODY;
+}
+
+bool					connection::is_transfer_encoding_completed(fd_info &clnt_info, request &rq)
+{//corresponding_header_value 사용할꺼라면 rq 계속 필요
+	//std::string	value = rq.corresponding_header_value(clnt_info.fd, "Transfer-Encoding", TMP_RQ);
+	//transfer-encoding이 chunked가 아닌 경우 content-length를 참고해야 하는데 그럴 수 x -> transfer-encoding이 무조건 chunked라고 생각?
+
+	if (!clnt_info.msg.substr(0, 2).compare("0\n"))
+	{
+		request::iterator it = rq.find_clnt_in_tmp(clnt_info.fd);
+		rq.insert(it, "");
+		return (true);
+	}
+	if (clnt_info.msg.rfind("\n0\n") == std::string::npos)
+		return (false);
+	parse_client_body(clnt_info, rq);
+	return (true);
+}
+
+bool					connection::is_content_length_completed(fd_info &clnt_info, request &rq)
+{
+	request::iterator	it = rq.find_clnt_in_tmp(clnt_info.fd);
+	int	length = stoi(rq.corresponding_header_value(it, "Content-Length")); //stoi 함수는 C++11
+	if (length != clnt_info.msg.length())
+		return (false);
+	rq.insert(it, clnt_info.msg);
+	return (true);
 }
 
 void					connection::print_client_msg(int clnt_sock)

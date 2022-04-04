@@ -12,7 +12,11 @@
 # include <exception>
 # include "request.hpp"
 
-# define	BUF_SIZE 100
+# define	BUF_SIZE 			100
+# define	HEADER_NOT_PARSED	0
+# define	NO_BODY				1
+# define	TRANSFER_ENCODING	2
+# define	CONTENT_LENGTH		3
 
 //읽고 쓸 때 체크해야 하는 fd 배열의 집합 - select에서 사용하나 서버 소켓에 대해 해당 read_fd를 활성화해줘야 하기 때문에 connection에서 선언
 class IO_fd_set
@@ -39,9 +43,10 @@ public:
 	int							server_sock; //이 fd가 클라이언트라면 연결된 서버fd를 의미, 서버라면 -1 -> 나중에 연결된 서버 페이지를 보여준다던가 할 때 사용하려고 일단 fd를 넣고 해당 config 내용이 필요하다면 나중에 수정
 	std::string					msg; //이 fd가 클라이언트라면 입력받은 문자열을 받아서 나중에 \n 기준으로 split_msg에 추가
 	std::vector<std::string>	split_msg;
+	int							body_flag;
 
-	fd_info(int f) : fd(f), server_sock(-1), msg(""), split_msg() {}
-	fd_info(int f, int s) : fd(f), server_sock(s), msg(""), split_msg() {}
+	fd_info(int f) : fd(f), server_sock(-1), msg(""), split_msg(), body_flag(HEADER_NOT_PARSED) {}
+	fd_info(int f, int s) : fd(f), server_sock(s), msg(""), split_msg(), body_flag(HEADER_NOT_PARSED) {}
 };
 
 class connection
@@ -50,9 +55,6 @@ private:
 	int							server_size; //fd_arr에서 서버, 클라이언트 구별 위함
 	std::vector<fd_info>		fd_arr; //서버와 클라이언트 fd 모두 여기에 저장 - 나중에 입출력 검사 위해
 	fd_set						&read_fds;
-
-	void						concatenate_client_msg(fd_info &clnt_info, std::string to_append);
-	void						parse_client_msg_by_line(fd_info &clnt_info);
 
 public:
 	typedef std::vector<fd_info>::iterator	iterator;
@@ -67,6 +69,13 @@ public:
 	void						connect_client(int serv_sock);
 	void						disconnect_client(int clnt_sock);
 	void						get_client_msg(int clnt_sock, request &rq);
+	void						concatenate_client_msg(fd_info &clnt_info, std::string to_append);
+	void						parse_client_header_by_line(fd_info &clnt_info);
+	void						parse_client_body(fd_info &clnt_info, request &rq);
+	bool						is_input_completed(fd_info &clnt_info, request &rq);
+	void						is_body_exist(fd_info &clnt_info, request::iterator &it, request &rq);
+	bool						is_transfer_encoding_completed(fd_info &clnt_info, request &rq);
+	bool						is_content_length_completed(fd_info &clnt_info, request &rq);
 	void						print_client_msg(int clnt_sock);
 
 	class	socket_error : public std::exception

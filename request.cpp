@@ -46,11 +46,57 @@ void					request::print(void)
 	}
 }
 
-void					request::insert(int clnt_fd, std::vector<std::string> msg)
+void					request::print_tmp(void)
+{
+	request::iterator				it;
+	request::second_type::iterator	it2;
+
+	for (it = tmp_rq.begin(); it != tmp_rq.end(); ++it)
+	{
+		std::cout << "fd: " << (it->first).fd << std::endl;
+		std::cout << "method: " << (it->first).method << std::endl;
+		std::cout << "url: " << (it->first).url << std::endl;
+		std::cout << "version: " << (it->first).version << std::endl;
+		std::cout << "is_invalid: " << (it->first).is_invalid << std::endl;
+		std::cout << "<header>" << std::endl;
+		if ((it->first).is_invalid)
+		{
+			std::cerr << "Cannot print because it's an invalid format" << std::endl;
+			continue ;
+		}
+		for (it2 = ++(it->second).begin(); it2 != (it->second).end(); ++it2)
+			std::cout << "\tkey: " << it2->first << ", value: " << it2->second << std::endl;
+		/*std::cout << "<body>" << std::endl;
+		it2 = (it->second).begin();
+		std::cout << it2->second << std::endl;*/
+	}
+}
+
+request::iterator		request::insert_header(int clnt_fd, std::vector<std::string> msg_header)
 {
 	request::first_type		first(clnt_fd);
-	request::second_type	second = parse(first, msg);
-	rq.push_back(std::make_pair(first, second));
+	request::second_type	second = parse_header(first, msg_header);
+	/*if (flag == HAVE_BODY)
+		tmp_rq.push_back(std::make_pair(first, second));
+	else
+	{
+		second.insert(std::make_pair("", ""));
+		rq.push_back(std::make_pair(first, second));
+	}*/
+	tmp_rq.push_back(std::make_pair(first, second));
+	return (tmp_rq.end() - 1);
+}
+
+request::iterator		request::insert(request::iterator &it, std::string msg_body)
+{
+	//tmp_rq에서 찾아서 거기에 추가
+	/*iterator it = find_clnt(clnt_fd, TMP_RQ);
+	if (it == tmp_rq.end())
+		return ;*/
+	(it->second).insert(std::make_pair("", msg_body));
+	rq.insert(rq.end(), *it);
+	tmp_rq.erase(it);
+	return (rq.end() - 1);
 }
 
 void					request::erase(request::iterator it)
@@ -58,7 +104,7 @@ void					request::erase(request::iterator it)
 	rq.erase(it);
 }
 
-request::second_type	request::parse(request::first_type &first, std::vector<std::string> msg)
+request::second_type	request::parse_header(request::first_type &first, std::vector<std::string> msg)
 {
 	int						i;
 	size_t					last  = 0;
@@ -94,11 +140,33 @@ request::second_type	request::parse(request::first_type &first, std::vector<std:
 	}
 	if (check_header_invalid(res))
 		first.is_invalid = true;
-	i++;
-	res.insert(std::make_pair("", msg[i])); //본문은 key를 빈 문자열로 하여 맵에 저장
+	/*i++;
+	res.insert(std::make_pair("", msg[i]));*/ //본문은 key를 빈 문자열로 하여 맵에 저장
 	if (first.is_invalid)
 		return (second_type());
 	return (res);
+}
+
+request::iterator		request::find_clnt(int clnt_fd)
+{
+	request::iterator it;
+	for (it = rq.begin(); it != rq.end(); ++it)
+	{
+		if ((it->first).fd == clnt_fd)
+			break ;
+	}
+	return (it);
+}
+
+request::iterator		request::find_clnt_in_tmp(int clnt_fd)
+{
+	request::iterator it;
+	for (it = tmp_rq.begin(); it != tmp_rq.end(); ++it)
+	{
+		if ((it->first).fd == clnt_fd)
+			break ;
+	}
+	return (it);
 }
 
 bool					request::check_info_invalid(request::first_type &first)
@@ -131,4 +199,34 @@ bool					request::check_header_invalid(request::second_type &second)
 	if (second.find("Host") == second.end())
 		return (true);
 	return (false);
+}
+
+bool					request::which_method(request::iterator &it, std::string method)
+{
+	if (!(it->first).method.compare(method))
+		return (true);
+	return (false);
+}
+
+bool					request::is_existing_header(request::iterator &it, std::string header)
+{
+	request::second_type::iterator it2 = (it->second).find(header);
+	if (it2 == (it->second).end())
+		return (false);
+	return (true);
+}
+
+std::string				request::corresponding_header_value(request::iterator &it, std::string header)
+{
+	request::second_type::iterator it2 = (it->second).find(header);
+	return (it2->second);
+}
+
+bool					request::set_error(request::iterator &it, int err_no)
+{
+	if ((it->first).is_invalid)
+		return (false);
+	(it->first).is_invalid = true;
+	(it->first).err_no = err_no;
+	return (true);
 }
