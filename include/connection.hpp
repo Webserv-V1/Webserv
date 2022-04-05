@@ -71,11 +71,12 @@ public:
 	void						get_client_msg(int clnt_sock, request &rq);
 	void						concatenate_client_msg(fd_info &clnt_info, std::string to_append);
 	void						parse_client_header_by_line(fd_info &clnt_info);
-	void						parse_client_body(fd_info &clnt_info, request &rq);
 	bool						is_input_completed(fd_info &clnt_info, request &rq);
 	void						is_body_exist(fd_info &clnt_info, request::iterator &it, request &rq);
 	bool						is_transfer_encoding_completed(fd_info &clnt_info, request &rq);
 	bool						is_content_length_completed(fd_info &clnt_info, request &rq);
+	void						parse_client_te_body(fd_info &clnt_info, request &rq);
+	int							cl_body_length(std::string &msg);
 	void						print_client_msg(int clnt_sock);
 
 	class	socket_error : public std::exception

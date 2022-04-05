@@ -60,6 +60,14 @@ public:
 	bool		is_existing_header(iterator &it, std::string header);
 	std::string	corresponding_header_value(iterator &it, std::string header);
 	bool		set_error(iterator &it, int err_no);
+
+	class	invalid_header_error : public std::exception
+	{
+		virtual const char	*what(void) const throw()
+		{
+			return ("Invalid Header!!");
+		}
+	};
 };
 
 #endif
