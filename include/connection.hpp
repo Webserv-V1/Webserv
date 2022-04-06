@@ -41,12 +41,13 @@ class fd_info
 public:
 	int							fd; //현재 파일디스크립터
 	int							server_sock; //이 fd가 클라이언트라면 연결된 서버fd를 의미, 서버라면 -1 -> 나중에 연결된 서버 페이지를 보여준다던가 할 때 사용하려고 일단 fd를 넣고 해당 config 내용이 필요하다면 나중에 수정
+	std::string					tmp; //transfer-encoding 때 파싱한 문자열을 저장할 임시 문자열
 	std::string					msg; //이 fd가 클라이언트라면 입력받은 문자열을 받아서 나중에 \n 기준으로 split_msg에 추가
 	std::vector<std::string>	split_msg;
 	int							body_flag;
 
-	fd_info(int f) : fd(f), server_sock(-1), msg(""), split_msg(), body_flag(HEADER_NOT_PARSED) {}
-	fd_info(int f, int s) : fd(f), server_sock(s), msg(""), split_msg(), body_flag(HEADER_NOT_PARSED) {}
+	fd_info(int f) : fd(f), server_sock(-1), tmp(""), msg(""), split_msg(), body_flag(HEADER_NOT_PARSED) {}
+	fd_info(int f, int s) : fd(f), server_sock(s), tmp(""), msg(""), split_msg(), body_flag(HEADER_NOT_PARSED) {}
 };
 
 class connection
@@ -76,7 +77,7 @@ public:
 	bool						is_transfer_encoding_completed(fd_info &clnt_info, request &rq);
 	bool						is_content_length_completed(fd_info &clnt_info, request &rq);
 	void						parse_client_te_body(fd_info &clnt_info, request &rq);
-	int							cl_body_length(std::string &msg);
+	int							body_length(std::string msg);
 	void						print_client_msg(int clnt_sock);
 
 	class	socket_error : public std::exception

@@ -68,6 +68,13 @@ public:
 			return ("Invalid Header!!");
 		}
 	};
+	class	incorrect_body_length_error : public std::exception
+	{
+		virtual const char	*what(void) const throw()
+		{
+			return ("Incorrect Body Length!!");
+		}
+	};
 };
 
 #endif

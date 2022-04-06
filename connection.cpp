@@ -136,6 +136,7 @@ bool					connection::is_input_completed(fd_info &clnt_info, request &rq)
 			rq.insert(it, ""); //추가할 본문이 없다면 빈 문자열만 삽입하고 종료를 의미
 			return (true);
 		}
+		return (false);
 	}
 	if (clnt_info.body_flag == TRANSFER_ENCODING) //플래그 값이 transfer-encoding일 때 다른 함수를 호출해서 입력 종료 여부 반환
 		return (is_transfer_encoding_completed(clnt_info, rq));
@@ -183,16 +184,52 @@ void					connection::is_body_exist(fd_info &clnt_info, request::iterator &it, re
 
 bool					connection::is_transfer_encoding_completed(fd_info &clnt_info, request &rq)
 {
-	if (!clnt_info.msg.substr(0, 2).compare("0\n")) //애초에 길이 0만 줄 때
+	request::iterator it = rq.find_clnt_in_tmp(clnt_info.fd);
+	size_t		last, next, tmp;
+	int			length;
+
+	while ((next = clnt_info.msg.find("\n")) != std::string::npos)
 	{
-		request::iterator it = rq.find_clnt_in_tmp(clnt_info.fd);
-		rq.insert(it, "");
-		return (true);
+		try
+		{
+			if ((length = stoi(clnt_info.msg.substr(0, next))) < 0)
+				throw (request::incorrect_body_length_error());
+			last = next + 1;
+			tmp = last;
+			int	clnt_length = 0;
+			while (true)
+			{
+				if ((next = clnt_info.msg.find("\n", tmp)) == std::string::npos)
+					return (false);
+				std::string	tmp_str = clnt_info.msg.substr(last, next - last);
+				clnt_length = body_length(tmp_str);
+				if (!length)
+				{
+					rq.insert(it, clnt_info.tmp);
+					return (true);
+				}
+				if (length == clnt_length)
+				{
+					if (!clnt_info.tmp.empty())
+						clnt_info.tmp.append("\n");
+					clnt_info.tmp.append(tmp_str);
+					clnt_info.msg = clnt_info.msg.substr(next + 1);
+					break ;
+				}
+				else if (length < clnt_length)
+					throw (request::incorrect_body_length_error());
+				tmp = next + 1;
+			}
+		}
+		catch(const std::exception& e)
+		{
+			std::cout << "set error\n";
+			rq.set_error(it, 400);
+			rq.insert(it, "");
+			return (true);
+		}
 	}
-	if (clnt_info.msg.rfind("\n0\n") == std::string::npos) //입력 중 입력이 끝나지 않았을 때
-		return (false);
-	parse_client_te_body(clnt_info, rq);
-	return (true);
+	return (false);
 }
 
 bool					connection::is_content_length_completed(fd_info &clnt_info, request &rq)
@@ -207,27 +244,20 @@ bool					connection::is_content_length_completed(fd_info &clnt_info, request &rq
 			throw (request::invalid_header_error());
 		if (clnt_info.msg[clnt_info.msg.length() - 1] != '\n')
 			return (false);
-		int		clnt_length = cl_body_length(clnt_info.msg);
+		int		clnt_length = body_length(clnt_info.msg.substr(0, clnt_info.msg.length() - 1)); //마지막 \n은 제외하고 길이 계산
 		if (clnt_length < length)
 			return (false);
 		else if (clnt_length > length)
-			throw (request::invalid_header_error());
+			throw (request::incorrect_body_length_error());
 	}
 	catch (const std::exception& e)
 	{
 		rq.set_error(it, 400);
 	}
 	if ((it->first).is_invalid)
-	{
-		//std::cout << "is invalid?\n";
 		rq.insert(it, "");
-	}
 	else
-	{
-		//std::cout << "Nopw?\n";
 		rq.insert(it, clnt_info.msg.substr(0, clnt_info.msg.length() - 1));
-	}
-	//std::cout << "ret true\n";
 	return (true);
 }
 
@@ -254,7 +284,7 @@ void					connection::parse_client_te_body(fd_info &clnt_info, request &rq)
 	rq.insert(it, res);
 }
 
-int						connection::cl_body_length(std::string &msg)
+int						connection::body_length(std::string msg)
 {
 	size_t	newline_num = 0;
 	size_t	last = 0;
@@ -264,7 +294,7 @@ int						connection::cl_body_length(std::string &msg)
 		newline_num++;
 		last = next + 1;
 	}
-	return (msg.length() + newline_num - 2); //msg의 실제 길이 - 마지막 \n의 개수 + 마지막 \r을 제외한 \r 개수
+	return (msg.length() + newline_num); //msg의 실제 길이 + \r 개수
 }
 
 void					connection::print_client_msg(int clnt_sock)
