@@ -261,29 +261,6 @@ bool					connection::is_content_length_completed(fd_info &clnt_info, request &rq
 	return (true);
 }
 
-void					connection::parse_client_te_body(fd_info &clnt_info, request &rq)
-{
-	size_t	last = 0;
-	size_t	next = 0;
-	size_t	len;
-	std::string	res("");
-
-	//2\r\n
-	//hi\r\n -> 이런 식으로 문자열 길이, 문자열 순으로 들어오는 transfer-encoding: chunked일 때의 파싱
-	while ((next = clnt_info.msg.find("\n", last)) != std::string::npos)
-	{		
-		if (!(len = stoi(clnt_info.msg.substr(last, next - last)))) //c++11?
-			break ;
-		if (last)
-			res.append("\n");
-		last = next + 1;
-		res.append(clnt_info.msg.substr(last, len));
-		last += (len + 1);
-	}	
-	request::iterator it = rq.find_clnt_in_tmp(clnt_info.fd);
-	rq.insert(it, res);
-}
-
 int						connection::body_length(std::string msg)
 {
 	size_t	newline_num = 0;

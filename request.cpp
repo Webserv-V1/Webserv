@@ -66,9 +66,6 @@ void					request::print_tmp(void)
 		}
 		for (it2 = ++(it->second).begin(); it2 != (it->second).end(); ++it2)
 			std::cout << "\tkey: " << it2->first << ", value: " << it2->second << std::endl;
-		/*std::cout << "<body>" << std::endl;
-		it2 = (it->second).begin();
-		std::cout << it2->second << std::endl;*/
 	}
 }
 
@@ -76,23 +73,12 @@ request::iterator		request::insert_header(int clnt_fd, std::vector<std::string> 
 {
 	request::first_type		first(clnt_fd);
 	request::second_type	second = parse_header(first, msg_header);
-	/*if (flag == HAVE_BODY)
-		tmp_rq.push_back(std::make_pair(first, second));
-	else
-	{
-		second.insert(std::make_pair("", ""));
-		rq.push_back(std::make_pair(first, second));
-	}*/
 	tmp_rq.push_back(std::make_pair(first, second));
 	return (tmp_rq.end() - 1);
 }
 
 request::iterator		request::insert(request::iterator &it, std::string msg_body)
 {
-	//tmp_rq에서 찾아서 거기에 추가
-	/*iterator it = find_clnt(clnt_fd, TMP_RQ);
-	if (it == tmp_rq.end())
-		return ;*/
 	(it->second).insert(std::make_pair("", msg_body));
 	rq.insert(rq.end(), *it);
 	tmp_rq.erase(it);
@@ -132,16 +118,17 @@ request::second_type	request::parse_header(request::first_type &first, std::vect
 
 	while (!msg[i].empty()) //헤더와 본문 사이 빈 문자열을 만나기 전까지 헤더 파싱
 	{
-		next = msg[i].find(": "); //각 헤더를 ": " 기준으로 분리
+		next = msg[i].find(":"); //각 헤더를 ":" 기준으로 분리
 		key = msg[i].substr(0, next);
-		value = msg[i].substr(next + 2);
+		std::transform(key.begin(), key.end(), key.begin(), ::tolower); //key값은 소문자로 모두 변경
+		std::string	tmp = msg[i].substr(next + 1); //양옆 공백 제거
+		tmp = tmp.erase(tmp.find_last_not_of(" ") + 1);
+		value = tmp.erase(0, tmp.find_first_not_of(" "));
 		res.insert(std::make_pair(key, value));
 		i++;
 	}
 	if (check_header_invalid(res))
 		first.is_invalid = true;
-	/*i++;
-	res.insert(std::make_pair("", msg[i]));*/ //본문은 key를 빈 문자열로 하여 맵에 저장
 	if (first.is_invalid)
 		return (second_type());
 	return (res);
@@ -190,13 +177,14 @@ bool					request::check_header_invalid(request::second_type &second)
 		//나중에 key값 체크해야 되는 지 확인 
 		if ((it->first).empty())
 			return (true);
-
-		//헤더 내부 key, value를 구분할 때 :를 기준으로 하는 것 같아 value에 :가 또 있으면 에러 -> 나중에 다시 확인
-		if ((it->second).find(": ") != std::string::npos)
-			return (true);
+		for (int i = 0; (it->first)[i]; i++)
+		{
+			if (isspace((it->first)[i]))
+				return (true);
+		}
 	}
 	//헤더에서 Host 정보가 꼭 있어야 함.
-	if (second.find("Host") == second.end())
+	if (second.find("host") == second.end())
 		return (true);
 	return (false);
 }
@@ -210,6 +198,7 @@ bool					request::which_method(request::iterator &it, std::string method)
 
 bool					request::is_existing_header(request::iterator &it, std::string header)
 {
+	std::transform(header.begin(), header.end(), header.begin(), ::tolower); //소문자로 모두 변경
 	request::second_type::iterator it2 = (it->second).find(header);
 	if (it2 == (it->second).end())
 		return (false);
@@ -218,6 +207,7 @@ bool					request::is_existing_header(request::iterator &it, std::string header)
 
 std::string				request::corresponding_header_value(request::iterator &it, std::string header)
 {
+	std::transform(header.begin(), header.end(), header.begin(), ::tolower); //소문자로 모두 변경
 	request::second_type::iterator it2 = (it->second).find(header);
 	return (it2->second);
 }

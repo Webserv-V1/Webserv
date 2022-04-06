@@ -76,7 +76,6 @@ public:
 	void						is_body_exist(fd_info &clnt_info, request::iterator &it, request &rq);
 	bool						is_transfer_encoding_completed(fd_info &clnt_info, request &rq);
 	bool						is_content_length_completed(fd_info &clnt_info, request &rq);
-	void						parse_client_te_body(fd_info &clnt_info, request &rq);
 	int							body_length(std::string msg);
 	void						print_client_msg(int clnt_sock);
 
