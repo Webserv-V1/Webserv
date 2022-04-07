@@ -4,6 +4,7 @@
 # include <iostream>
 # include <string>
 # include <cstring>
+# include <algorithm>
 # include <vector>
 # include <map>
 
@@ -15,8 +16,9 @@ public:
 	std::string	url;
 	std::string	version;
 	bool		is_invalid;
+	int			err_no;
 
-	base_request(int fd_) : fd(fd_), method(""), url(""), version(""), is_invalid(false) {}
+	base_request(int fd_) : fd(fd_), method(""), url(""), version(""), is_invalid(false), err_no(-1) {}
 
 	bool	operator<(const base_request &base) const
 	{
@@ -33,20 +35,44 @@ public:
 	typedef std::vector<value_type>				value_arr;
 	typedef value_arr::iterator					iterator;
 private:
+	value_arr	tmp_rq;
 	value_arr	rq; //각 요청 메세지를 맵 형태로 저장 - 현재 처리가 필요한 요청들만 저장해뒀다가 처리해준 뒤 삭제
 public:
-	request(void) : rq() {}
+	request(void) : tmp_rq(), rq() {}
 	~request(void) {}
 	iterator	rq_begin(void);
 	iterator	rq_end(void);
 	bool		empty(void) const;
 	bool		is_invalid(iterator it);
 	void		print(void);
-	void		insert(int clnt_fd, std::vector<std::string> msg);
-	void		erase(iterator it);
-	second_type	parse(first_type &first, std::vector<std::string> msg);
+	void		print_tmp(void);
+	iterator	insert_rq_line(int clnt_fd, std::string rq_line);
+	iterator	insert_header(iterator &it, std::vector<std::string> msg_header);
+	iterator	insert(iterator &it, std::string msg_body);
+	void		erase(iterator &it);
+	iterator	find_clnt(int clnt_fd);
+	iterator	find_clnt_in_tmp(int clnt_fd);
 	bool		check_info_invalid(first_type &first);
 	bool		check_header_invalid(second_type &second);
+	bool		which_method(iterator &it, std::string method);
+	bool		is_existing_header(iterator &it, std::string header);
+	std::string	corresponding_header_value(iterator &it, std::string header);
+	bool		set_error(iterator &it, int err_no);
+
+	class	invalid_header_error : public std::exception
+	{
+		virtual const char	*what(void) const throw()
+		{
+			return ("Invalid Header!!");
+		}
+	};
+	class	incorrect_body_length_error : public std::exception
+	{
+		virtual const char	*what(void) const throw()
+		{
+			return ("Incorrect Body Length!!");
+		}
+	};
 };
 
 #endif
