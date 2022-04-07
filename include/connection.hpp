@@ -13,10 +13,11 @@
 # include "request.hpp"
 
 # define	BUF_SIZE 			100
-# define	HEADER_NOT_PARSED	0
-# define	NO_BODY				1
-# define	TRANSFER_ENCODING	2
-# define	CONTENT_LENGTH		3
+# define	RQ_LINE_NOT_PARSED	0
+# define	HEADER_NOT_PARSED	1
+# define	NO_BODY				2
+# define	TRANSFER_ENCODING	3
+# define	CONTENT_LENGTH		4
 
 //읽고 쓸 때 체크해야 하는 fd 배열의 집합 - select에서 사용하나 서버 소켓에 대해 해당 read_fd를 활성화해줘야 하기 때문에 connection에서 선언
 class IO_fd_set
@@ -44,10 +45,10 @@ public:
 	std::string					tmp; //transfer-encoding 때 파싱한 문자열을 저장할 임시 문자열
 	std::string					msg; //이 fd가 클라이언트라면 입력받은 문자열을 받아서 나중에 \n 기준으로 split_msg에 추가
 	std::vector<std::string>	split_msg;
-	int							body_flag;
+	int							status;
 
-	fd_info(int f) : fd(f), server_sock(-1), tmp(""), msg(""), split_msg(), body_flag(HEADER_NOT_PARSED) {}
-	fd_info(int f, int s) : fd(f), server_sock(s), tmp(""), msg(""), split_msg(), body_flag(HEADER_NOT_PARSED) {}
+	fd_info(int f) : fd(f), server_sock(-1), tmp(""), msg(""), split_msg(), status(RQ_LINE_NOT_PARSED) {}
+	fd_info(int f, int s) : fd(f), server_sock(s), tmp(""), msg(""), split_msg(), status(RQ_LINE_NOT_PARSED) {}
 };
 
 class connection
@@ -71,6 +72,7 @@ public:
 	void						disconnect_client(int clnt_sock);
 	void						get_client_msg(int clnt_sock, request &rq);
 	void						concatenate_client_msg(fd_info &clnt_info, std::string to_append);
+	bool						parse_rq_line(fd_info &clnt_info, request &rq);
 	void						parse_client_header_by_line(fd_info &clnt_info);
 	bool						is_input_completed(fd_info &clnt_info, request &rq);
 	void						is_body_exist(fd_info &clnt_info, request::iterator &it, request &rq);

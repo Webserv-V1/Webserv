@@ -32,6 +32,7 @@ void					request::print(void)
 		std::cout << "url: " << (it->first).url << std::endl;
 		std::cout << "version: " << (it->first).version << std::endl;
 		std::cout << "is_invalid: " << (it->first).is_invalid << std::endl;
+		std::cout << "err_no: " << (it->first).err_no << std::endl;
 		std::cout << "<header>" << std::endl;
 		if ((it->first).is_invalid)
 		{
@@ -58,6 +59,7 @@ void					request::print_tmp(void)
 		std::cout << "url: " << (it->first).url << std::endl;
 		std::cout << "version: " << (it->first).version << std::endl;
 		std::cout << "is_invalid: " << (it->first).is_invalid << std::endl;
+		std::cout << "err_no: " << (it->first).err_no << std::endl;
 		std::cout << "<header>" << std::endl;
 		if ((it->first).is_invalid)
 		{
@@ -69,11 +71,46 @@ void					request::print_tmp(void)
 	}
 }
 
-request::iterator		request::insert_header(int clnt_fd, std::vector<std::string> msg_header)
+request::iterator		request::insert_rq_line(int clnt_fd, std::string rq_line)
 {
 	request::first_type		first(clnt_fd);
-	request::second_type	second = parse_header(first, msg_header);
-	tmp_rq.push_back(std::make_pair(first, second));
+	size_t					next, last = 0;
+	for (int i = 0; i < 3; i++)
+	{
+		next = rq_line.find(" ", last);
+		if (!i)
+			first.method = rq_line.substr(last, next - last);
+		else if (i == 1)
+			first.url = rq_line.substr(last, next - last);
+		else
+			first.version = rq_line.substr(last);
+		last = next + 1;
+	}
+	if (check_info_invalid(first))
+		first.is_invalid = true;
+	tmp_rq.push_back(std::make_pair(first, second_type()));
+	return (tmp_rq.end() - 1);
+}
+
+request::iterator		request::insert_header(iterator &it, std::vector<std::string> msg_header)
+{
+	//request::first_type		first(clnt_fd);
+	//request::second_type	second = parse_header(first, msg_header);
+	//tmp_rq.push_back(std::make_pair(first, second));
+	size_t		next;
+	std::string	key, value;
+	for (int i = 0; !msg_header[i].empty(); i++)
+	{
+		next = msg_header[i].find(":"); //각 헤더를 ":" 기준으로 분리
+		key = msg_header[i].substr(0, next);
+		std::transform(key.begin(), key.end(), key.begin(), ::tolower); //key값은 소문자로 모두 변경
+		std::string	tmp = msg_header[i].substr(next + 1); //양옆 공백 제거
+		tmp = tmp.erase(tmp.find_last_not_of(" ") + 1);
+		value = tmp.erase(0, tmp.find_first_not_of(" "));
+		(it->second).insert(std::make_pair(key, value));
+	}
+	if (check_header_invalid(it->second))
+		(it->first).is_invalid = true;
 	return (tmp_rq.end() - 1);
 }
 
@@ -85,53 +122,9 @@ request::iterator		request::insert(request::iterator &it, std::string msg_body)
 	return (rq.end() - 1);
 }
 
-void					request::erase(request::iterator it)
+void					request::erase(request::iterator &it)
 {
 	rq.erase(it);
-}
-
-request::second_type	request::parse_header(request::first_type &first, std::vector<std::string> msg)
-{
-	int						i;
-	size_t					last  = 0;
-	size_t					next = 0;
-	request::second_type	res;
-
-	//첫 번째 줄 파싱하고 유효성 검사
-	for (i = 0; i < 3; i++)
-	{
-		next = msg[0].find(" ", last);
-		if (!i)
-			first.method = msg[0].substr(last, next - last);
-		else if (i == 1)
-			first.url = msg[0].substr(last, next - last);
-		else
-			first.version = msg[0].substr(last);
-		last = next + 1;
-	}
-	if (check_info_invalid(first))
-		first.is_invalid = true;
-	
-	i = 1;
-	std::string	key;
-	std::string	value;
-
-	while (!msg[i].empty()) //헤더와 본문 사이 빈 문자열을 만나기 전까지 헤더 파싱
-	{
-		next = msg[i].find(":"); //각 헤더를 ":" 기준으로 분리
-		key = msg[i].substr(0, next);
-		std::transform(key.begin(), key.end(), key.begin(), ::tolower); //key값은 소문자로 모두 변경
-		std::string	tmp = msg[i].substr(next + 1); //양옆 공백 제거
-		tmp = tmp.erase(tmp.find_last_not_of(" ") + 1);
-		value = tmp.erase(0, tmp.find_first_not_of(" "));
-		res.insert(std::make_pair(key, value));
-		i++;
-	}
-	if (check_header_invalid(res))
-		first.is_invalid = true;
-	if (first.is_invalid)
-		return (second_type());
-	return (res);
 }
 
 request::iterator		request::find_clnt(int clnt_fd)

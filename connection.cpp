@@ -125,24 +125,45 @@ void					connection::concatenate_client_msg(fd_info &clnt_info, std::string to_a
 
 bool					connection::is_input_completed(fd_info &clnt_info, request &rq)
 {
-	//clnt_info에 body_flag 추가 - 디폴트 값 : HEADER_NOT_PARSED, 헤더를 파싱한 이후에 본문 처리 여부에 따라 NO_BODY, TRANSFER_ENCODING, CONTENT_LENGTH 중 하나로 저장됨.
-	if (clnt_info.body_flag == HEADER_NOT_PARSED && clnt_info.msg.rfind("\n\n") != std::string::npos) //헤더 부분이 완전히 들어와 파싱 처리를 해줄 상태
+	//clnt_info에 status 추가 - 디폴트 값 : RQ_LINE_NOT_PARSED, rq라인 파싱 이후 HEADER_NOT_PARSED, 헤더를 파싱한 이후에 본문 처리 여부에 따라 NO_BODY, TRANSFER_ENCODING, CONTENT_LENGTH 중 하나로 저장됨.
+	if (clnt_info.status == RQ_LINE_NOT_PARSED && clnt_info.msg.find("\n") != std::string::npos)
+	{
+		if (!parse_rq_line(clnt_info, rq))
+			return (true);
+	}
+	if (clnt_info.status == HEADER_NOT_PARSED && clnt_info.msg.rfind("\n\n") != std::string::npos) //헤더 부분이 완전히 들어와 파싱 처리를 해줄 상태
 	{
 		parse_client_header_by_line(clnt_info); //헤더 내용까지만 파싱 (\n\n 오기 전까지만)
-		request::iterator it = rq.insert_header(clnt_info.fd, clnt_info.split_msg); //rq 내부 tmp_rq에 헤더 내용을 임시 저장
-		is_body_exist(clnt_info, it, rq); //파싱된 헤더 내용을 기준으로 body_flag값을 업데이트
-		if (clnt_info.body_flag == NO_BODY)
+		request::iterator it = rq.find_clnt_in_tmp(clnt_info.fd);
+		rq.insert_header(it, clnt_info.split_msg); //rq 내부 tmp_rq에 헤더 내용을 임시 저장
+		is_body_exist(clnt_info, it, rq); //파싱된 헤더 내용을 기준으로 status값을 업데이트
+		if (clnt_info.status == NO_BODY)
 		{
 			rq.insert(it, ""); //추가할 본문이 없다면 빈 문자열만 삽입하고 종료를 의미
 			return (true);
 		}
 		return (false);
 	}
-	if (clnt_info.body_flag == TRANSFER_ENCODING) //플래그 값이 transfer-encoding일 때 다른 함수를 호출해서 입력 종료 여부 반환
+	if (clnt_info.status == TRANSFER_ENCODING) //플래그 값이 transfer-encoding일 때 다른 함수를 호출해서 입력 종료 여부 반환
 		return (is_transfer_encoding_completed(clnt_info, rq));
-	else if (clnt_info.body_flag == CONTENT_LENGTH)
+	else if (clnt_info.status == CONTENT_LENGTH)
 		return (is_content_length_completed(clnt_info, rq));
 	return (false);
+}
+
+bool					connection::parse_rq_line(fd_info &clnt_info, request &rq)
+{
+	size_t		next = clnt_info.msg.find("\n");
+	std::string	res = clnt_info.msg.substr(0, next);
+	clnt_info.msg = clnt_info.msg.substr(next + 1);
+	request::iterator	it = rq.insert_rq_line(clnt_info.fd, res);
+	clnt_info.status = HEADER_NOT_PARSED;
+	if (rq.is_invalid(it))
+	{
+		rq.insert(it, "");
+		return (false);
+	}
+	return (true);
 }
 
 void					connection::parse_client_header_by_line(fd_info &clnt_info)
@@ -165,9 +186,9 @@ void					connection::parse_client_header_by_line(fd_info &clnt_info)
 
 void					connection::is_body_exist(fd_info &clnt_info, request::iterator &it, request &rq)
 {
-	if (!rq.which_method(it, "POST")) //telnet 이용 시 본문이 필요하지 않는 메서드는 아예 입력 종료 -> POST가 아닐 때는 더 이상 입력x
+	if ((it->first).is_invalid || !rq.which_method(it, "POST")) //telnet 이용 시 본문이 필요하지 않는 메서드는 아예 입력 종료 -> POST가 아닐 때는 더 이상 입력x
 	{
-		clnt_info.body_flag = NO_BODY;
+		clnt_info.status = NO_BODY;
 		return ;
 	}
 	bool	te_flag = rq.is_existing_header(it, "Transfer-Encoding");
@@ -175,11 +196,11 @@ void					connection::is_body_exist(fd_info &clnt_info, request::iterator &it, re
 	//if (te_flag && cl_flag) //transfer, content 헤더 둘 다 있으면 에러 -> telnet 확인해보니 그냥 transfer로 처리
 	//	rq.set_error(it, 400); //400이 맞는지 확인
 	if (te_flag)
-		clnt_info.body_flag = TRANSFER_ENCODING;
+		clnt_info.status = TRANSFER_ENCODING;
 	else if (cl_flag)
-		clnt_info.body_flag = CONTENT_LENGTH;
+		clnt_info.status = CONTENT_LENGTH;
 	else
-		clnt_info.body_flag = NO_BODY;
+		clnt_info.status = NO_BODY;
 }
 
 bool					connection::is_transfer_encoding_completed(fd_info &clnt_info, request &rq)
@@ -188,46 +209,54 @@ bool					connection::is_transfer_encoding_completed(fd_info &clnt_info, request 
 	size_t		last, next, tmp;
 	int			length;
 
-	while ((next = clnt_info.msg.find("\n")) != std::string::npos)
+	if (!rq.corresponding_header_value(it, "Transfer-Encoding").compare("chunked"))
 	{
-		try
+		while ((next = clnt_info.msg.find("\n")) != std::string::npos)
 		{
-			if ((length = stoi(clnt_info.msg.substr(0, next))) < 0)
-				throw (request::incorrect_body_length_error());
-			last = next + 1;
-			tmp = last;
-			int	clnt_length = 0;
-			while (true)
+			try
 			{
-				if ((next = clnt_info.msg.find("\n", tmp)) == std::string::npos)
-					return (false);
-				std::string	tmp_str = clnt_info.msg.substr(last, next - last);
-				clnt_length = body_length(tmp_str);
-				if (!length)
-				{
-					rq.insert(it, clnt_info.tmp);
-					return (true);
-				}
-				if (length == clnt_length)
-				{
-					if (!clnt_info.tmp.empty())
-						clnt_info.tmp.append("\n");
-					clnt_info.tmp.append(tmp_str);
-					clnt_info.msg = clnt_info.msg.substr(next + 1);
-					break ;
-				}
-				else if (length < clnt_length)
+				if ((length = stoi(clnt_info.msg.substr(0, next))) < 0)
 					throw (request::incorrect_body_length_error());
-				tmp = next + 1;
+				last = next + 1;
+				tmp = last;
+				int	clnt_length = 0;
+				while (true)
+				{
+					if ((next = clnt_info.msg.find("\n", tmp)) == std::string::npos)
+						return (false);
+					std::string	tmp_str = clnt_info.msg.substr(last, next - last);
+					clnt_length = body_length(tmp_str);
+					if (!length)
+					{
+						rq.insert(it, clnt_info.tmp);
+						return (true);
+					}
+					if (length == clnt_length)
+					{
+						if (!clnt_info.tmp.empty())
+							clnt_info.tmp.append("\n");
+						clnt_info.tmp.append(tmp_str);
+						clnt_info.msg = clnt_info.msg.substr(next + 1);
+						break ;
+					}
+					else if (length < clnt_length)
+						throw (request::incorrect_body_length_error());
+					tmp = next + 1;
+				}
+			}
+			catch(const std::exception& e)
+			{
+				rq.set_error(it, 400);
+				rq.insert(it, "");
+				return (true);
 			}
 		}
-		catch(const std::exception& e)
-		{
-			std::cout << "set error\n";
-			rq.set_error(it, 400);
-			rq.insert(it, "");
-			return (true);
-		}
+	}
+	else
+	{
+		rq.set_error(it, 501);
+		rq.insert(it, "");
+		return (true);
 	}
 	return (false);
 }

@@ -8,9 +8,6 @@
 # include <vector>
 # include <map>
 
-# define	TMP_RQ	0
-# define	RQ		1
-
 class base_request
 {
 public:
@@ -49,10 +46,10 @@ public:
 	bool		is_invalid(iterator it);
 	void		print(void);
 	void		print_tmp(void);
-	iterator	insert_header(int clnt_fd, std::vector<std::string> msg_header);
+	iterator	insert_rq_line(int clnt_fd, std::string rq_line);
+	iterator	insert_header(iterator &it, std::vector<std::string> msg_header);
 	iterator	insert(iterator &it, std::string msg_body);
-	void		erase(iterator it);
-	second_type	parse_header(first_type &first, std::vector<std::string> msg);
+	void		erase(iterator &it);
 	iterator	find_clnt(int clnt_fd);
 	iterator	find_clnt_in_tmp(int clnt_fd);
 	bool		check_info_invalid(first_type &first);
