@@ -72,10 +72,11 @@ public:
 	void						disconnect_client(int clnt_sock);
 	void						get_client_msg(int clnt_sock, request &rq);
 	void						concatenate_client_msg(fd_info &clnt_info, std::string to_append);
-	bool						parse_rq_line(fd_info &clnt_info, request &rq);
-	void						parse_client_header_by_line(fd_info &clnt_info);
 	bool						is_input_completed(fd_info &clnt_info, request &rq);
-	void						is_body_exist(fd_info &clnt_info, request::iterator &it, request &rq);
+	bool						completed_input(request &rq, request::iterator &it, std::string body, int err_no);
+	request::iterator			parse_rq_line(fd_info &clnt_info, request &rq);
+	request::iterator			parse_client_header_by_line(fd_info &clnt_info, request &rq);
+	void						is_body_exist(fd_info &clnt_info, request &rq, request::iterator &it);
 	bool						is_transfer_encoding_completed(fd_info &clnt_info, request &rq);
 	bool						is_content_length_completed(fd_info &clnt_info, request &rq);
 	int							body_length(std::string msg);

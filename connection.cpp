@@ -125,24 +125,25 @@ void					connection::concatenate_client_msg(fd_info &clnt_info, std::string to_a
 
 bool					connection::is_input_completed(fd_info &clnt_info, request &rq)
 {
+	request::iterator	it;
 	//clnt_info에 status 추가 - 디폴트 값 : RQ_LINE_NOT_PARSED, rq라인 파싱 이후 HEADER_NOT_PARSED, 헤더를 파싱한 이후에 본문 처리 여부에 따라 NO_BODY, TRANSFER_ENCODING, CONTENT_LENGTH 중 하나로 저장됨.
 	if (clnt_info.status == RQ_LINE_NOT_PARSED && clnt_info.msg.find("\n") != std::string::npos)
 	{
-		if (!parse_rq_line(clnt_info, rq))
-			return (true);
+		it = parse_rq_line(clnt_info, rq);
+		if (rq.is_invalid(it))
+			return (completed_input(rq, it, "", -1));
 	}
 	if (clnt_info.status == HEADER_NOT_PARSED && clnt_info.msg.rfind("\n\n") != std::string::npos) //헤더 부분이 완전히 들어와 파싱 처리를 해줄 상태
 	{
-		parse_client_header_by_line(clnt_info); //헤더 내용까지만 파싱 (\n\n 오기 전까지만)
-		request::iterator it = rq.find_clnt_in_tmp(clnt_info.fd);
-		rq.insert_header(it, clnt_info.split_msg); //rq 내부 tmp_rq에 헤더 내용을 임시 저장
-		is_body_exist(clnt_info, it, rq); //파싱된 헤더 내용을 기준으로 status값을 업데이트
+		it = parse_client_header_by_line(clnt_info, rq); //헤더 내용까지만 파싱 (\n\n 오기 전까지만)
+		is_body_exist(clnt_info, rq, it); //파싱된 헤더 내용을 기준으로 status값을 업데이트
 		if (clnt_info.status == NO_BODY)
-		{
-			rq.insert(it, ""); //추가할 본문이 없다면 빈 문자열만 삽입하고 종료를 의미
-			return (true);
-		}
-		return (false);
+			return (completed_input(rq, it, "", -1)); //추가할 본문이 없다면 빈 문자열만 삽입하고 종료를 의미
+		std::cout << "before checking empty\n";
+		std::cout << "\t" << clnt_info.msg << std::endl;
+		if (clnt_info.msg.empty())
+			return (false);
+		std::cout << "msg not empty\n";
 	}
 	if (clnt_info.status == TRANSFER_ENCODING) //플래그 값이 transfer-encoding일 때 다른 함수를 호출해서 입력 종료 여부 반환
 		return (is_transfer_encoding_completed(clnt_info, rq));
@@ -151,22 +152,25 @@ bool					connection::is_input_completed(fd_info &clnt_info, request &rq)
 	return (false);
 }
 
-bool					connection::parse_rq_line(fd_info &clnt_info, request &rq)
+bool					connection::completed_input(request &rq, request::iterator &it, std::string body, int err_no)
+{
+	if (err_no != -1)
+		rq.set_error(it, err_no);
+	rq.insert(it, body);
+	return (true);
+}
+
+request::iterator		connection::parse_rq_line(fd_info &clnt_info, request &rq)
 {
 	size_t		next = clnt_info.msg.find("\n");
 	std::string	res = clnt_info.msg.substr(0, next);
 	clnt_info.msg = clnt_info.msg.substr(next + 1);
 	request::iterator	it = rq.insert_rq_line(clnt_info.fd, res);
 	clnt_info.status = HEADER_NOT_PARSED;
-	if (rq.is_invalid(it))
-	{
-		rq.insert(it, "");
-		return (false);
-	}
-	return (true);
+	return (it);
 }
 
-void					connection::parse_client_header_by_line(fd_info &clnt_info)
+request::iterator		connection::parse_client_header_by_line(fd_info &clnt_info, request &rq)
 {
 	size_t	last = 0;
 	size_t	next = 0;
@@ -182,19 +186,20 @@ void					connection::parse_client_header_by_line(fd_info &clnt_info)
 		}
 	}
 	clnt_info.msg = clnt_info.msg.substr(last); //\n\n 앞의 내용들은 파싱해서 저장해줬으니 그 뒷내용(body)들만 msg에 다시 저장
+	request::iterator it = rq.find_clnt_in_tmp(clnt_info.fd);
+	rq.insert_header(it, clnt_info.split_msg);
+	return (it);
 }
 
-void					connection::is_body_exist(fd_info &clnt_info, request::iterator &it, request &rq)
+void					connection::is_body_exist(fd_info &clnt_info, request &rq, request::iterator &it)
 {
-	if ((it->first).is_invalid || !rq.which_method(it, "POST")) //telnet 이용 시 본문이 필요하지 않는 메서드는 아예 입력 종료 -> POST가 아닐 때는 더 이상 입력x
+	if (rq.is_invalid(it) || !rq.which_method(it, "POST")) //telnet 이용 시 본문이 필요하지 않는 메서드는 아예 입력 종료 -> POST가 아닐 때는 더 이상 입력x
 	{
 		clnt_info.status = NO_BODY;
 		return ;
 	}
 	bool	te_flag = rq.is_existing_header(it, "Transfer-Encoding");
 	bool	cl_flag = rq.is_existing_header(it, "Content-Length");
-	//if (te_flag && cl_flag) //transfer, content 헤더 둘 다 있으면 에러 -> telnet 확인해보니 그냥 transfer로 처리
-	//	rq.set_error(it, 400); //400이 맞는지 확인
 	if (te_flag)
 		clnt_info.status = TRANSFER_ENCODING;
 	else if (cl_flag)
@@ -227,10 +232,7 @@ bool					connection::is_transfer_encoding_completed(fd_info &clnt_info, request 
 					std::string	tmp_str = clnt_info.msg.substr(last, next - last);
 					clnt_length = body_length(tmp_str);
 					if (!length)
-					{
-						rq.insert(it, clnt_info.tmp);
-						return (true);
-					}
+						return (completed_input(rq, it, clnt_info.tmp, -1));
 					if (length == clnt_length)
 					{
 						if (!clnt_info.tmp.empty())
@@ -246,18 +248,13 @@ bool					connection::is_transfer_encoding_completed(fd_info &clnt_info, request 
 			}
 			catch(const std::exception& e)
 			{
-				rq.set_error(it, 400);
-				rq.insert(it, "");
-				return (true);
+				std::cout << "first 400 error\n";
+				return (completed_input(rq, it, "", 400));
 			}
 		}
 	}
 	else
-	{
-		rq.set_error(it, 501);
-		rq.insert(it, "");
-		return (true);
-	}
+		return (completed_input(rq, it, "", 501));
 	return (false);
 }
 
@@ -281,13 +278,10 @@ bool					connection::is_content_length_completed(fd_info &clnt_info, request &rq
 	}
 	catch (const std::exception& e)
 	{
-		rq.set_error(it, 400);
+		std::cout << "second 400 error\n";
+		return (completed_input(rq, it, "", 400));
 	}
-	if ((it->first).is_invalid)
-		rq.insert(it, "");
-	else
-		rq.insert(it, clnt_info.msg.substr(0, clnt_info.msg.length() - 1));
-	return (true);
+	return (completed_input(rq, it, clnt_info.msg.substr(0, clnt_info.msg.length() - 1), -1));
 }
 
 int						connection::body_length(std::string msg)
