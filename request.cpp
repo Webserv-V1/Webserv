@@ -66,7 +66,7 @@ void					request::print_tmp(void)
 			std::cerr << "Cannot print because it's an invalid format" << std::endl;
 			continue ;
 		}
-		for (it2 = ++(it->second).begin(); it2 != (it->second).end(); ++it2)
+		for (it2 = (it->second).begin(); it2 != (it->second).end(); ++it2)
 			std::cout << "\tkey: " << it2->first << ", value: " << it2->second << std::endl;
 	}
 }
@@ -95,12 +95,9 @@ request::iterator		request::insert_rq_line(int clnt_fd, std::string rq_line)
 
 request::iterator		request::insert_header(iterator &it, std::vector<std::string> msg_header)
 {
-	//request::first_type		first(clnt_fd);
-	//request::second_type	second = parse_header(first, msg_header);
-	//tmp_rq.push_back(std::make_pair(first, second));
 	size_t		next;
 	std::string	key, value;
-	for (int i = 0; !msg_header[i].empty(); i++)
+	for (int i = 0; i < msg_header.size(); i++)
 	{
 		next = msg_header[i].find(":"); //각 헤더를 ":" 기준으로 분리
 		key = msg_header[i].substr(0, next);

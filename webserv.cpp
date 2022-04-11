@@ -30,7 +30,7 @@ bool	connect_socket_and_parsing(IO_fd_set *fds, connection *cn, request *rq)
 	else if (!fd_num)
 		return true;
 	for (connection::iterator it = (*cn).fd_arr_begin(); it != (*cn).fd_arr_end(); ++it)
-	{	
+	{
 		if (FD_ISSET(it->fd, &((*fds).cpy_read_fds)))
 		{
 			if ((*cn).is_server_socket(it->fd))
@@ -45,7 +45,9 @@ bool	connect_socket_and_parsing(IO_fd_set *fds, connection *cn, request *rq)
 		{
 			/*std::string	rp = "print done!\n";
 			send(1, rp.c_str(), strlen(rp.c_str()), 0);*/ //여기선 단순히 문자열 출력하는 방법
-			std::string	rp = "HTTP/1.1 200 OK\r\nConnection: close\r\nContent-Length: 16\r\nContent-type: text/html\r\n\r\n<h1>TESTING</h1>";
+			//std::string	rp = "HTTP/1.1 200 OK\r\nConnection: close\r\nContent-Length: 67\r\nContent-type: text/html\r\n\r\n<!DOCTYPE html>\r\n<link rel=\"short icon\" href=\"#\">\r\n<h1>TESTING</h1>";
+			//std::string	rp = "HTTP/1.1 200 OK\r\nConnection: close\r\nContent-Length: 33\r\nContent-type: text/html\r\n\r\n<!DOCTYPE html>\r\n<h1>TESTING</h1>";
+			std::string	rp = "HTTP/1.1 200 OK\r\nConnection: close\r\nContent-Length: 66\r\nContent-type: text/html\r\n\r\n<!DOCTYPE html>\r\n<link rel=\"icon\" href=\"data:,\">\r\n<h1>TESTING</h1>";
 			send(it->fd, rp.c_str(), strlen(rp.c_str()), 0); //recv에 맞춰서 write도 send로 변경
 			FD_CLR(it->fd, &((*fds).write_fds));
 			(*cn).disconnect_client(it->fd); //출력까지 하고 나서 cn 내부에 아직 남아있는 해당 fd 정보를 삭제

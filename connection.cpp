@@ -29,6 +29,7 @@ connection::~connection(void)
 {
 	for (int i = 0; i < fd_arr.size(); i++)
 		close(fd_arr[i].fd);
+	fd_arr.clear();
 }
 
 connection::iterator	connection::fd_arr_begin(void)
@@ -80,7 +81,7 @@ void					connection::connect_client(int serv_sock)
 	struct sockaddr_in	clnt_adr;
 	socklen_t			adr_sz = sizeof(clnt_adr);
 
-	//4.클라이언트 접속 요청 수락하는 부분 
+	//4.클라이언트 접속 요청 수락하는 부분
 	if ((clnt_sock = accept(serv_sock, reinterpret_cast<struct sockaddr*>(&clnt_adr), &adr_sz)) == -1)
 		throw (connection::accept_error());
 	FD_SET(clnt_sock, &read_fds);
@@ -92,7 +93,9 @@ void					connection::disconnect_client(int clnt_sock)
 {
 	std::vector<fd_info>::iterator it;
 
-	for (it = fd_arr.begin(); it != fd_arr.end(); ++it)
+	if (is_server_socket(clnt_sock))
+		return ;
+	for (it = fd_arr.begin() + server_size; it != fd_arr.end(); ++it)
 	{
 		if (it->fd == clnt_sock)
 		{
@@ -133,17 +136,14 @@ bool					connection::is_input_completed(fd_info &clnt_info, request &rq)
 		if (rq.is_invalid(it))
 			return (completed_input(rq, it, "", -1));
 	}
-	if (clnt_info.status == HEADER_NOT_PARSED && clnt_info.msg.rfind("\n\n") != std::string::npos) //헤더 부분이 완전히 들어와 파싱 처리를 해줄 상태
+	if (clnt_info.status == HEADER_NOT_PARSED && clnt_info.msg.find("\n\n") != std::string::npos) //헤더 부분이 완전히 들어와 파싱 처리를 해줄 상태
 	{
 		it = parse_client_header_by_line(clnt_info, rq); //헤더 내용까지만 파싱 (\n\n 오기 전까지만)
 		is_body_exist(clnt_info, rq, it); //파싱된 헤더 내용을 기준으로 status값을 업데이트
 		if (clnt_info.status == NO_BODY)
 			return (completed_input(rq, it, "", -1)); //추가할 본문이 없다면 빈 문자열만 삽입하고 종료를 의미
-		std::cout << "before checking empty\n";
-		std::cout << "\t" << clnt_info.msg << std::endl;
 		if (clnt_info.msg.empty())
 			return (false);
-		std::cout << "msg not empty\n";
 	}
 	if (clnt_info.status == TRANSFER_ENCODING) //플래그 값이 transfer-encoding일 때 다른 함수를 호출해서 입력 종료 여부 반환
 		return (is_transfer_encoding_completed(clnt_info, rq));
@@ -164,7 +164,7 @@ request::iterator		connection::parse_rq_line(fd_info &clnt_info, request &rq)
 {
 	size_t		next = clnt_info.msg.find("\n");
 	std::string	res = clnt_info.msg.substr(0, next);
-	clnt_info.msg = clnt_info.msg.substr(next + 1);
+	clnt_info.msg = clnt_info.msg.substr(next);
 	request::iterator	it = rq.insert_rq_line(clnt_info.fd, res);
 	clnt_info.status = HEADER_NOT_PARSED;
 	return (it);
@@ -175,6 +175,8 @@ request::iterator		connection::parse_client_header_by_line(fd_info &clnt_info, r
 	size_t	last = 0;
 	size_t	next = 0;
 
+	while (clnt_info.msg[last] == '\n')
+		last++;
 	while ((next = clnt_info.msg.find("\n", last)) != std::string::npos)
 	{
 		clnt_info.split_msg.push_back(clnt_info.msg.substr(last, next - last));
@@ -220,8 +222,7 @@ bool					connection::is_transfer_encoding_completed(fd_info &clnt_info, request 
 		{
 			try
 			{
-				if ((length = stoi(clnt_info.msg.substr(0, next))) < 0)
-					throw (request::incorrect_body_length_error());
+				length = convert_to_body_length(clnt_info.msg.substr(0, next), 16); //내부에서 변환이 잘못 됐거나 음수면 에러 throw
 				last = next + 1;
 				tmp = last;
 				int	clnt_length = 0;
@@ -248,7 +249,6 @@ bool					connection::is_transfer_encoding_completed(fd_info &clnt_info, request 
 			}
 			catch(const std::exception& e)
 			{
-				std::cout << "first 400 error\n";
 				return (completed_input(rq, it, "", 400));
 			}
 		}
@@ -265,9 +265,7 @@ bool					connection::is_content_length_completed(fd_info &clnt_info, request &rq
 
 	try
 	{
-		length = stoi(rq.corresponding_header_value(it, "Content-Length")); //stoi 함수는 C++11
-		if (length < 0)
-			throw (request::invalid_header_error());
+		length = convert_to_body_length(rq.corresponding_header_value(it, "Content-Length"), 10);
 		if (clnt_info.msg[clnt_info.msg.length() - 1] != '\n')
 			return (false);
 		int		clnt_length = body_length(clnt_info.msg.substr(0, clnt_info.msg.length() - 1)); //마지막 \n은 제외하고 길이 계산
@@ -278,10 +276,20 @@ bool					connection::is_content_length_completed(fd_info &clnt_info, request &rq
 	}
 	catch (const std::exception& e)
 	{
-		std::cout << "second 400 error\n";
 		return (completed_input(rq, it, "", 400));
 	}
 	return (completed_input(rq, it, clnt_info.msg.substr(0, clnt_info.msg.length() - 1), -1));
+}
+
+int						connection::convert_to_body_length(std::string str_length, int radix)
+{
+	if (str_length.empty())
+		throw (request::incorrect_body_length_error());
+	char	*end;
+	int		length = static_cast<int>(strtol(str_length.c_str(), &end, radix));
+	if (*end || length < 0)
+		throw (request::incorrect_body_length_error());
+	return (length);
 }
 
 int						connection::body_length(std::string msg)
