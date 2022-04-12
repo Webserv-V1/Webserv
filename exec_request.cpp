@@ -273,7 +273,7 @@ void find_cf_server_i(config &cf, request::value_type &fd_data, conf_index &cf_i
 {
 	for(int i = 0; i < cf.v_s.size(); i++)
 	{
-		if(cf.v_s[i].listen == fd_data.second["Host"])
+		if(cf.v_s[i].listen == fd_data.second["host"])
 		{
 			cf_i.server = i;
 			break;
@@ -292,12 +292,12 @@ void find_cf_server_i(config &cf, request::value_type &fd_data, conf_index &cf_i
 }
 void when_host_is_localhost(request::value_type &fd_data)
 {
-	if(fd_data.second["Host"].substr(0, 9) == "localhost")
+	if(fd_data.second["host"].substr(0, 9) == "localhost")
 	{
-		if(fd_data.second["Host"][9] == ':')
-			fd_data.second["Host"] = (std::string)"127.0.0.1" + ":" + fd_data.second["Host"].substr(10);
+		if(fd_data.second["host"][9] == ':')
+			fd_data.second["host"] = (std::string)"127.0.0.1" + ":" + fd_data.second["host"].substr(10);
 		else
-			fd_data.second["Host"] = (std::string)"127.0.0.1" + ":80";
+			fd_data.second["host"] = (std::string)"127.0.0.1" + ":80";
 	}
 }
 
@@ -313,7 +313,6 @@ std::string confirmed_root_path(config &cf, conf_index &cf_i)
 		cf.v_s[cf_i.server].v_l[cf_i.location].m_location["root"].push_back("./html_file");
 		cf_i.root_path = cf.v_s[cf_i.server].v_l[cf_i.location].m_location["root"][0];
 	}
-
 	std::string path = cf_i.root_path + cf_i.request_url_remaining;
 	struct stat s;
 	if( stat(path.c_str(),&s) == 0 )
@@ -326,6 +325,7 @@ std::string confirmed_root_path(config &cf, conf_index &cf_i)
 		else //( s.st_mode & S_IFDIR )
 			return "location is folder";
 	}
+
 	else
 		throw 404;
 
@@ -411,18 +411,18 @@ void exec_redirection(config &cf, conf_index &cf_i)
 
 void exec_header(config &cf, request::value_type &fd_data, conf_index &cf_i, std::map<std::string, std::string> &m_mt)
 {
-	if(fd_data.second.find("Host") !=  fd_data.second.end())
+	if(fd_data.second.find("host") !=  fd_data.second.end())
 	{
 		when_host_is_localhost(fd_data);
 		find_cf_server_i(cf, fd_data, cf_i);
 	}
-	else throw 400;
-	if(fd_data.second.find("Connection") !=  fd_data.second.end())
+  else throw 400;
+	if(fd_data.second.find("connection") !=  fd_data.second.end())
 	{
 		//keep-alive면 그냥 접속 지금처럼 지속해주면됨.
-		if(fd_data.second["Connection"] != "keep-alive" && fd_data.second["Connection"] != "close")
+		if(fd_data.second["connection"] != "keep-alive" && fd_data.second["connection"] != "close")
 			throw 400;
-		if(fd_data.second["Connection"] == "close")
+		if(fd_data.second["connection"] == "close")
 			cf_i.Connection = "close";
 			//std::cout << "에러처리찾기 : keep-alive아닐때 처리. close같은 옵션도 있던데 해야햐ㅏㄹ까?" << std::endl;
 	}
@@ -618,7 +618,8 @@ void    exec_request(config &cf, fd_set &write_fds, request *rq, std::string &re
 	    if (!rq->is_invalid(it)) //일단 그 값이 유효할 때만 출력 -> 나중에         유효하지 않으면 해당되는 에러 페이지 호출하도록
 	        rq->print();
 		try{
-			exec_header(cf, *it, cf_i, m_mt);
+			
+      (cf, *it, cf_i, m_mt);
 			exec_method(cf, it, cf_i);
 			exec_body();
 			throw 200;
