@@ -618,8 +618,7 @@ void    exec_request(config &cf, fd_set &write_fds, request *rq, std::string &re
 	    if (!rq->is_invalid(it)) //일단 그 값이 유효할 때만 출력 -> 나중에         유효하지 않으면 해당되는 에러 페이지 호출하도록
 	        rq->print();
 		try{
-			
-      (cf, *it, cf_i, m_mt);
+      			exec_header(cf, *it, cf_i, m_mt);
 			exec_method(cf, it, cf_i);
 			exec_body();
 			throw 200;
