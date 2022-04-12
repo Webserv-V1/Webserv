@@ -80,6 +80,14 @@ void input_listen(config &cf, std::string &save_data, const int &input_data_cnt)
 	return ;
 }
 
+void value_check(int input_flag, std::string save_data)
+{
+	if(input_flag == 4) //allow_methods
+	{
+		 if((save_data) != "GET" && (save_data) != "POST" && (save_data) != "DELETE")
+			 throw config_error_allow_methods();
+	}
+}
 void input_data(config &cf, std::string &save_data, int &input_flag, std::string readLine, int i, int &input_data_cnt)
 {
 	save_data += readLine[i];
@@ -99,6 +107,7 @@ void input_data(config &cf, std::string &save_data, int &input_flag, std::string
 		}
 		else if(input_flag > 2)
 		{
+			value_check(input_flag, save_data);
 			if(input_data_cnt == cf.v_s[cf.server_i].v_l[cf.v_s[cf.server_i].location_i].m_location[cf.v_location_invalid_key[input_flag - 3]].size())
 				cf.v_s[cf.server_i].v_l[cf.v_s[cf.server_i].location_i].m_location[cf.v_location_invalid_key[input_flag - 3]].push_back(save_data);
 			else
@@ -121,6 +130,70 @@ void after_server(config &cf, int &i, std::string &readLine)
 	i = i + 5;
 }
 
+void erase_slash(std::string &location_path)
+{
+	std::string new_location = "";
+	std::string save = "";
+	int full_flag = 0;
+	for(int lo_s_i = 0; lo_s_i <  location_path.size(); lo_s_i++)
+	{
+		if(location_path[lo_s_i] != '/')
+		{
+			new_location += location_path[lo_s_i];
+			full_flag = 1;
+			if(location_path.size() == lo_s_i + 1)
+				save += "/" + new_location;
+		}
+		else if ((location_path.size() == lo_s_i + 1 || location_path[lo_s_i] == '/') && full_flag == 1)
+		{
+			save += "/" + new_location;
+			new_location = "";
+			full_flag = 0;
+		}
+	}
+	if(location_path.size() == 1)
+	{
+		if(location_path[0] == '/')
+			;
+		else
+		{
+			location_path = "/" + location_path;
+		}
+	}
+	else location_path = save;
+
+
+//	std::string new_location = "";
+//	std::string save = "";
+//	int full_flag = 0;
+//	for(int lo_s_i = 0; lo_s_i <  cf.v_s[i].location_path[j].size(); lo_s_i++)
+//	{
+//		if(cf.v_s[i].location_path[j][lo_s_i] != '/')
+//		{
+//			new_location += cf.v_s[i].location_path[j][lo_s_i];
+//			full_flag = 1;
+//			if(cf.v_s[i].location_path[j].size() == lo_s_i + 1)
+//				save += "/" + new_location;
+//		}
+//		else if ((cf.v_s[i].location_path[j].size() == lo_s_i + 1 || cf.v_s[i].location_path[j][lo_s_i] == '/') && full_flag == 1)
+//		{
+//			save += "/" + new_location;
+//			new_location = "";
+//			full_flag = 0;
+//		}
+//	}
+//	if(cf.v_s[i].location_path[j].size() == 1)
+//	{
+//		if(cf.v_s[i].location_path[j][0] == '/')
+//			;
+//		else
+//		{
+//			cf.v_s[i].location_path[j] = "/" + cf.v_s[i].location_path[j];
+//		}
+//	}
+//	else cf.v_s[i].location_path[j] = save;
+}
+
 void after_location(config &cf, int &i, std::string &readLine)
 {
 	cf.v_s[cf.server_i].location_i++;
@@ -136,18 +209,23 @@ void after_location(config &cf, int &i, std::string &readLine)
 		{
 			if(flag == 1)
 			{
+				if(readLine.size() - 1 == i)
+					location_path += readLine[i];
+				erase_slash(location_path);
 				cf.v_s[cf.server_i].location_path.push_back(location_path);
 				flag = 2;
 			}
 			else if(flag == 0 && (readLine.size() - 1 == i || readLine[i] == '#'))
 			{
-				location_path += readLine[i];
+				if(readLine.size() - 1 == i)
+					location_path += readLine[i];
 				if(readLine[i] != ' ' || readLine[i] != '	')
-					cf.v_s[cf.server_i].location_path.push_back(location_path);
-				else
 				{
-					throw wrong_configfile_data_2();
+					erase_slash(location_path);
+					cf.v_s[cf.server_i].location_path.push_back(location_path);
 				}
+				else
+					throw wrong_configfile_data_2();
 			}
 			if(flag == 2 && readLine[i] == '#')
 			{
@@ -158,9 +236,7 @@ void after_location(config &cf, int &i, std::string &readLine)
 		else
 		{
 			if(flag == 2)
-			{
 				throw wrong_configfile_data_2();
-			}
 			location_path += readLine[i];
 			flag = 1;
 		}
@@ -248,6 +324,91 @@ void set_cf(config &cf, std::string readLine)
 	}
 }
 
+void check_l_root(config &cf, int &i, int &j)
+{
+	if(cf.v_s[i].v_l[j].m_location.find("root") != cf.v_s[i].v_l[j].m_location.end())
+	{
+		if(cf.v_s[i].v_l[j].m_location["root"].size() != 1)
+			 throw config_error_root();
+	}
+}
+
+void check_l_error_page(config &cf, int &i, int &j)
+{
+	if(cf.v_s[i].v_l[j].m_location.find("error_page") != cf.v_s[i].v_l[j].m_location.end())
+	{
+		if(1 == cf.v_s[i].v_l[j].m_location["error_page"].size())
+			throw config_error_error_page();
+		for(int z = 0; z < cf.v_s[i].v_l[j].m_location["error_page"].size() - 1 ; z++)
+		{
+			if("300" > cf.v_s[i].v_l[j].m_location["error_page"][z] || "599" < cf.v_s[i].v_l[j].m_location["error_page"][z])
+				throw config_error_error_page();
+		}
+	}
+}
+
+void check_l_client_max_body_size(config &cf, int &i, int &j)
+{
+	if(cf.v_s[i].v_l[j].m_location.find("client_max_body_size") != cf.v_s[i].v_l[j].m_location.end())
+	{
+		if(cf.v_s[i].v_l[j].m_location["client_max_body_size"].size() != 1)
+			 throw config_error_client_max();
+		if(stol(cf.v_s[i].v_l[j].m_location["client_max_body_size"][0]) > 2048) // 1기가 넘어가면 에러
+			 throw config_error_client_max();
+		for(int zz = 0; zz < cf.v_s[i].v_l[j].m_location["client_max_body_size"][0].size(); zz++)
+		{
+			if (cf.v_s[i].v_l[j].m_location["client_max_body_size"][0].size() - 1 != zz && !isdigit(cf.v_s[i].v_l[j].m_location["client_max_body_size"][0][zz]))
+				throw config_error_client_max();
+			if (cf.v_s[i].v_l[j].m_location["client_max_body_size"][0].size() - 1 == zz && !isdigit(cf.v_s[i].v_l[j].m_location["client_max_body_size"][0][zz]) && cf.v_s[i].v_l[j].m_location["client_max_body_size"][0][zz] != 'M')
+				throw config_error_client_max();
+		}
+	}
+}
+void check_l_return(config &cf, int &i, int &j)
+{
+	if(cf.v_s[i].v_l[j].m_location.find("return") != cf.v_s[i].v_l[j].m_location.end())
+	{
+		std::string ttmp[6] = {"301", "308", "302", "303", "307", "308"};
+		std::vector<std::string> amd (ttmp, ttmp + 6);
+		if(cf.v_s[i].v_l[j].m_location["return"].size() != 2 || find(amd.begin(), amd.end(), cf.v_s[i].v_l[j].m_location["return"][0]) == amd.end() )
+			throw config_error_return();
+	}
+}
+
+void location_check(config &cf, int &i)
+{
+	for(int j = 0; j < cf.v_s[i].location_path.size(); j++)
+	{
+		check_l_root(cf, i, j);
+		check_l_error_page(cf, i, j);
+		check_l_client_max_body_size(cf, i, j);
+		check_l_return(cf, i, j);
+	}
+}
+
+void last_check(config &cf)
+{
+	if(cf.v_s.size() == 0)
+	{
+		std::cout << "이거 안탈거아ㅇ냐? " << std::endl;
+		throw config_error_server();
+	}
+	for(int i = 0; i < cf.v_s.size(); i++)
+	{
+		if(cf.v_s[i].location_path.size() == 0)
+			throw config_error_location();
+		for(int j = 0; j < cf.v_s[i].v_error_page.size(); j++)
+		{
+			for(int z = 0; z< cf.v_s[i].v_error_page[j].second.size() - 1; z++)
+			{
+				if("300" > cf.v_s[i].v_error_page[j].second[z] || "599" < cf.v_s[i].v_error_page[j].second[z])
+					throw config_error_error_page();
+			}
+		}
+		location_check(cf, i);
+	}
+}
+
 void config_parsing(config &cf)
 {
 	std::string readLine;
@@ -258,9 +419,11 @@ void config_parsing(config &cf)
 	{
 		while (getline(readFile, readLine))
 			set_cf(cf, readLine);
+		readFile.close();
 	}
 	else
 		throw open_fail();
+	last_check(cf);
 }
 
 void print_cf_data(config &cf)
