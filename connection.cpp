@@ -26,7 +26,7 @@ connection::connection(fd_set &rfds) : server_size(0), fd_arr(), read_fds(rfds)
 
 connection::~connection(void)
 {
-	for (int i = 0; i < server_size; i++)
+	for (int i = 0; i < fd_arr.size(); i++)
 		close(fd_arr[i].fd);
 }
 
