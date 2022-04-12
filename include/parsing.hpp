@@ -76,7 +76,7 @@ public :
 		file_name = _file_name;
 		std::string s_invalid_key[] = {"location", "listen", "error_page"};
 		std::string l_invalid_key[] = { "error_page", "allow_methods", \
-				"request_max_body_size", "root", "index", "auto_index", \
+				"client_max_body_size", "root", "index", "auto_index", \
 				"cgi_extension", "auth_key", "client_body_buffer_size", "upload_path", "return"};
 
 	v_server_invalid_key.insert(v_server_invalid_key.begin(), s_invalid_key, s_invalid_key + sizeof(s_invalid_key) / sizeof(std::string));

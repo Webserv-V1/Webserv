@@ -36,4 +36,22 @@ struct config_error_root : std::exception {
   const char* what() const throw() {return "configfile don't have root";}
 };
 
+struct config_error_allow_methods : std::exception {
+  const char* what() const throw() {return "configfile wrong data for allow_methods";}
+};
+struct config_error_error_page : std::exception {
+  const char* what() const throw() {return "configfile wrong data for error_page";}
+};
+struct config_error_client_max : std::exception {
+  const char* what() const throw() {return "configfile wrong data for client_max_body_size";}
+};
+struct config_error_return : std::exception {
+  const char* what() const throw() {return "configfile wrong data for return\nreturn 번호 : 영구(301, 308), 임시(302, 303, 307, 308)";}
+};
+
+struct root_and_location_error : std::exception {
+  const char* what() const throw() {return "root랑 location 경로 안열림!";}
+};
+
+
 #endif

@@ -81,8 +81,7 @@ int		main(void)
 	{
 		config cf("webserv.conf");
 		config_parsing(cf);
-		//print_cf_data(cf); //이걸로 cf출력 볼수 있습니다. 
-
+//		print_cf_data(cf); //이걸로 cf출력 볼수 있습니다. 
 		exec_webserv(cf); //나중에 config 받아서~
 	}
 	catch(const std::exception& e)
