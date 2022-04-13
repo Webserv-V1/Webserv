@@ -1,32 +1,42 @@
 #include "./include/connection.hpp"
 
-connection::connection(fd_set &rfds) : server_size(0), fd_arr(), read_fds(rfds)
+connection::connection(config &cf, fd_set &rfds) : server_size(0), fd_arr(), read_fds(rfds)
 {
 	int serv_sock;
+	int reuse = 1;
 	struct sockaddr_in	serv_adr;
 	//지금은 하나의 서버만 생성한다고 가정해서 작성하지만 나중엔 Config를 받아서 서버를 모두 생성하도록 수정
-	//1. 서버 소켓 하나 생성
-	if ((serv_sock = socket(PF_INET, SOCK_STREAM, 0)) == -1)
-		throw (connection::socket_error());
-	server_size++;
-	fd_arr.push_back(fd_info(serv_sock));
-	//2. socket에 IP, Port 번호 할당
-	memset(&serv_adr, 0, sizeof(serv_adr));
-	serv_adr.sin_family = AF_INET;
-	serv_adr.sin_addr.s_addr = htonl(INADDR_ANY);
-	serv_adr.sin_port = htons(100); //일단은 포트 번호 100로 설정
-	if (bind(serv_sock, reinterpret_cast<struct sockaddr*>(&serv_adr), sizeof(serv_adr)) == -1)
-		throw (connection::bind_error());
-	//3. server socket에 클라이언트 접속 요청 대기할 수 있도록 - 일단 10개의 수신 대기열
-	if (listen(serv_sock, 10) == -1)
-		throw (connection::listen_error());
-	FD_SET(serv_sock, &read_fds); //read_fds에서 서버 fd 활성화
-	fcntl(serv_sock, F_SETFL, O_NONBLOCK);
-	//소켓 프로그래밍에서 4.클라이언트 접속 요청 수락하는 부분, 5.클라이언트와 연결된 소켓으로 데이터 송수신하는 부분은 다른 메서드에서
+	for (int i = 0; i < cf.v_s.size(); i++)
+	{
+		//std::cout << "server " << i << std::endl;
+		//1. 서버 소켓 하나 생성
+		if ((serv_sock = socket(PF_INET, SOCK_STREAM, 0)) == -1)
+			throw (connection::socket_error());
+		server_size++;
+		fd_arr.push_back(fd_info(serv_sock));
+		//2. socket에 IP, Port 번호 할당
+		memset(&serv_adr, 0, sizeof(serv_adr));
+		serv_adr.sin_family = AF_INET;
+		//std::cout << "IP: " << cf.v_s[i].v_listen[1] << ", Port: " << cf.v_s[i].v_listen[0] << std::endl;
+		serv_adr.sin_addr.s_addr = inet_addr(cf.v_s[i].v_listen[1].c_str());
+		int port = convert_to_num(cf.v_s[i].v_listen[0], 10);
+		serv_adr.sin_port = htons(port); //일단은 포트 번호 100로 설정
+		if (setsockopt(serv_sock, SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(reuse)) == -1) //바로 포트 재사용가능하도록 설정
+			throw (connection::setsockopt_error());
+		if (bind(serv_sock, reinterpret_cast<struct sockaddr*>(&serv_adr), sizeof(serv_adr)) == -1)
+			throw (connection::bind_error());
+		//3. server socket에 클라이언트 접속 요청 대기할 수 있도록 - 일단 10개의 수신 대기열
+		if (listen(serv_sock, 128) == -1)
+			throw (connection::listen_error());
+		FD_SET(serv_sock, &read_fds); //read_fds에서 서버 fd 활성화
+		fcntl(serv_sock, F_SETFL, O_NONBLOCK); //서버도 논블락이 필요한가?
+		//소켓 프로그래밍에서 4.클라이언트 접속 요청 수락하는 부분, 5.클라이언트와 연결된 소켓으로 데이터 송수신하는 부분은 다른 메서드에서
+	}
 }
 
 connection::~connection(void)
 {
+	//std::cout << "connection destructor\n";
 	for (int i = 0; i < fd_arr.size(); i++)
 		close(fd_arr[i].fd);
 	fd_arr.clear();
@@ -84,6 +94,7 @@ void					connection::connect_client(int serv_sock)
 	//4.클라이언트 접속 요청 수락하는 부분
 	if ((clnt_sock = accept(serv_sock, reinterpret_cast<struct sockaddr*>(&clnt_adr), &adr_sz)) == -1)
 		throw (connection::accept_error());
+	//std::cout << "connecting: serv - " << serv_sock << ", clnt - " << clnt_sock << "\n";
 	FD_SET(clnt_sock, &read_fds);
 	fcntl(clnt_sock, F_SETFL, O_NONBLOCK); //각 클라이언트 fd를 논블로킹으로 설정
 	fd_arr.push_back(fd_info(clnt_sock, serv_sock));
@@ -93,8 +104,13 @@ void					connection::disconnect_client(int clnt_sock)
 {
 	std::vector<fd_info>::iterator it;
 
+	//std::cout << "disconnecting: clnt - " << clnt_sock << std::endl;
 	if (is_server_socket(clnt_sock))
 		return ;
+	/*std::cout << "remain fd: ";
+	for (it = fd_arr.begin(); it != fd_arr.end(); ++it)
+		std::cout << it->fd << " ";
+	std::cout << std::endl;*/
 	for (it = fd_arr.begin() + server_size; it != fd_arr.end(); ++it)
 	{
 		if (it->fd == clnt_sock)
@@ -222,7 +238,7 @@ bool					connection::is_transfer_encoding_completed(fd_info &clnt_info, request 
 		{
 			try
 			{
-				length = convert_to_body_length(clnt_info.msg.substr(0, next), 16); //내부에서 변환이 잘못 됐거나 음수면 에러 throw
+				length = convert_to_num(clnt_info.msg.substr(0, next), 16); //내부에서 변환이 잘못 됐거나 음수면 에러 throw
 				last = next + 1;
 				tmp = last;
 				int	clnt_length = 0;
@@ -265,7 +281,7 @@ bool					connection::is_content_length_completed(fd_info &clnt_info, request &rq
 
 	try
 	{
-		length = convert_to_body_length(rq.corresponding_header_value(it, "Content-Length"), 10);
+		length = convert_to_num(rq.corresponding_header_value(it, "Content-Length"), 10);
 		if (clnt_info.msg[clnt_info.msg.length() - 1] != '\n')
 			return (false);
 		int		clnt_length = body_length(clnt_info.msg.substr(0, clnt_info.msg.length() - 1)); //마지막 \n은 제외하고 길이 계산
@@ -281,7 +297,7 @@ bool					connection::is_content_length_completed(fd_info &clnt_info, request &rq
 	return (completed_input(rq, it, clnt_info.msg.substr(0, clnt_info.msg.length() - 1), -1));
 }
 
-int						connection::convert_to_body_length(std::string str_length, int radix)
+int						connection::convert_to_num(std::string str_length, int radix)
 {
 	if (str_length.empty())
 		throw (request::incorrect_body_length_error());
