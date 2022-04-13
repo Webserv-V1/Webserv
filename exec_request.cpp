@@ -3,12 +3,13 @@
 #include <iostream>
 #include <string>
 #include <algorithm>    // std::replace
+#include <sstream>
 #include "./include/request.hpp"
 #include "./include/connection.hpp"
 #include "./include/exec_request.hpp"
 #include "./include/parsing.hpp"
 #include "./include/error.hpp"
-
+#include "./default_conf.hpp"
 #include <sys/select.h> /* According to earlier standards */ 
 #include <sys/time.h> 
 #include <sys/types.h> 
@@ -108,8 +109,23 @@ void set(std::map<int, std::string> &m_state_code, std::map<std::string, std::st
 	}
 }
 
+std::string make_GMT_time()
+{
+	time_t rawtime;
+	struct tm* gm_timeinfo;
 
-
+	time(&rawtime);
+	gm_timeinfo = gmtime(&rawtime);
+	std::string tmp (asctime(gm_timeinfo));
+	std::istringstream iss(tmp);
+	std::string buffer;
+	std::vector<std::string> v_time_tmp;
+    while (getline(iss, buffer, ' ')) {
+        v_time_tmp.push_back(buffer);               // 절삭된 문자열을 vector에 저장
+    }
+	std::cout << "hoylee time " << v_time_tmp[0] + ", " + v_time_tmp[2] + " " + v_time_tmp[1] + " " + v_time_tmp[4].substr(0, 4) + " " + v_time_tmp[3] + + " " +"GMT" << std::endl;
+	return (v_time_tmp[0] + ", " + v_time_tmp[2] + " " + v_time_tmp[1] + " " + v_time_tmp[4].substr(0, 4) + " " + v_time_tmp[3] + + " " +"GMT");
+}
 
 class conf_index {
 	public : 
@@ -310,7 +326,7 @@ std::string confirmed_root_path(config &cf, conf_index &cf_i)
 	else
 	{
 		//설명 : root 없을떄 기본값.
-		cf.v_s[cf_i.server].v_l[cf_i.location].m_location["root"].push_back("./html_file");
+		cf.v_s[cf_i.server].v_l[cf_i.location].m_location["root"].push_back(DEFAULT_HTML_PATH);
 		cf_i.root_path = cf.v_s[cf_i.server].v_l[cf_i.location].m_location["root"][0];
 	}
 	std::string path = cf_i.root_path + cf_i.request_url_remaining;
@@ -447,8 +463,9 @@ void make_request(int &error_code, std::string &request_msg, conf_index &cf_i)
 	if(200 <= error_code && 400 > error_code)
 	{
 		request_msg += "Connection: " + cf_i.Connection + "\r\n";
+		std::string sum_string (DEFAULT_HTML_PATH);
 		if(cf_i.autoindex_flag == 1)
-			readFile.open("./html_file/autoindex.html");
+			readFile.open((sum_string + "/autoindex.html").c_str());
 		else
 			readFile.open(cf_i.file_path);
 	}
@@ -460,7 +477,7 @@ void make_request(int &error_code, std::string &request_msg, conf_index &cf_i)
 	else
 	{
 		request_msg += "Connection: keep-alive\r\n";
-		readFile.open((std::string)"./html_file/" + std::to_string(error_code) + ".html");
+		readFile.open((std::string)DEFAULT_HTML_PATH + std::to_string(error_code) + ".html");
 	}
 
 	std::string readLine ="";
@@ -537,6 +554,7 @@ void make_request(int &error_code, std::string &request_msg, conf_index &cf_i)
 		request_msg += "Content-Length: " + std::to_string(file_data.size()) + "\r\n";
 		request_msg += "Content-type: text/html\r\n";
 	}
+	request_msg += (std::string)"Date: " + make_GMT_time() + "\r\n";
 	request_msg += "\r\n";
 	request_msg += file_data;
 }
@@ -577,7 +595,7 @@ void error_page(int &error_code, conf_index &cf_i, config &cf, std::string &requ
 		
 {
 	if (cf_i.root_path == "")
-		cf_i.root_path = "./html_file";
+		cf_i.root_path = DEFAULT_HTML_PATH;
 	if (cf_i.server != -1 && cf_i.location != -1 && cf.v_s[cf_i.server].v_l[cf_i.location].m_location.find("error_page") != cf.v_s[cf_i.server].v_l[cf_i.location].m_location.end())
 	{
 		exec_error_page(cf_i, cf, error_code, cf.v_s[cf_i.server].v_l[cf_i.location].m_location["error_page"], request_msg, m_state_code);	
@@ -592,6 +610,7 @@ void make_request_redirect(std::string &request_msg, conf_index &cf_i)
 {
 	request_msg += (std::string)"Content-Type: text/html" + "\r\n";
 	request_msg += (std::string)"Connection: keep-alive" + "\r\n";
+	request_msg += (std::string)"Date: " + make_GMT_time() + "\r\n";
 	request_msg += (std::string)"Location: " + cf_i.redirect_path + "\r\n" + "\r\n";
 }
 

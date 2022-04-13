@@ -2,20 +2,8 @@
 #include "./include/exec_request.hpp"
 #include "./include/parsing.hpp"
 #include "./include/error.hpp"
-//#include "./include/parsing.hpp"
-//void	exec_method(fd_set &write_fds, request &rq)
-//{
-//	//GET, POST, DELETE 메서드에 따라 실행
-//	while (!rq.empty())
-//	{
-//		std::cout << "executing method(GET, POST, DELETE)" << std::endl;
-//		request::iterator it = rq.rq_begin(); //rq 맨 처음에 있는 값에 대해 처리
-//		if (!rq.is_invalid(it))	//일단 그 값이 유효할 때만 출력 -> 나중에 유효하지 않으면 해당되는 에러 페이지 호출하도록
-//			rq.print();
-//		FD_SET((it->first).fd, &write_fds); //해당 fd에 대해 출력할 수 있도록 설정
-//		rq.erase(it);
-//	}
-//}
+#include "./default_conf.hpp"
+#include <time.h>
 
 bool	connect_socket_and_parsing(IO_fd_set *fds, connection *cn, request *rq, std::string &request_msg)
 {
@@ -29,10 +17,7 @@ bool	connect_socket_and_parsing(IO_fd_set *fds, connection *cn, request *rq, std
 	if ((fd_num = select((*cn).max_fd() + 1, &((*fds).cpy_read_fds), &((*fds).cpy_write_fds), 0, &timeout)) == -1)
 		throw (select_error());
 	else if (!fd_num)
-	{
-	//std::cout << " 나한테 왜이라; " <<std::endl;
 		return true;
-	}
 	for (connection::iterator it = (*cn).fd_arr_begin(); it != (*cn).fd_arr_end(); ++it)
 	{	
 		if (FD_ISSET(it->fd, &((*fds).cpy_read_fds)))
@@ -79,7 +64,7 @@ int		main(void)
 {
 	try
 	{
-		config cf("webserv.conf");
+		config cf(WEBSERV_CONF_PATH);
 		config_parsing(cf);
 //		print_cf_data(cf); //이걸로 cf출력 볼수 있습니다. 
 		exec_webserv(cf); //나중에 config 받아서~
