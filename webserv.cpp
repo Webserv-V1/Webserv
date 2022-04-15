@@ -1,6 +1,7 @@
 #include "./include/webserv.hpp"
 #include "./include/exec_request.hpp"
 #include "./include/parsing.hpp"
+#include "./include/error.hpp"
 //#include "./include/parsing.hpp"
 //void	exec_method(fd_set &write_fds, request &rq)
 //{
@@ -16,7 +17,7 @@
 //	}
 //}
 
-bool	connect_socket_and_parsing(IO_fd_set *fds, connection *cn, request *rq)
+bool	connect_socket_and_parsing(IO_fd_set *fds, connection *cn, request *rq, std::string &request_msg)
 {
 	struct timeval	timeout;
 	int				fd_num;
@@ -28,7 +29,10 @@ bool	connect_socket_and_parsing(IO_fd_set *fds, connection *cn, request *rq)
 	if ((fd_num = select((*cn).max_fd() + 1, &((*fds).cpy_read_fds), &((*fds).cpy_write_fds), 0, &timeout)) == -1)
 		throw (select_error());
 	else if (!fd_num)
+	{
+	//std::cout << " 나한테 왜이라; " <<std::endl;
 		return true;
+	}
 	for (connection::iterator it = (*cn).fd_arr_begin(); it != (*cn).fd_arr_end(); ++it)
 	{
 		if (FD_ISSET(it->fd, &((*fds).cpy_read_fds)))
@@ -45,7 +49,9 @@ bool	connect_socket_and_parsing(IO_fd_set *fds, connection *cn, request *rq)
 		{
 			/*std::string	rp = "print done!\n";
 			send(1, rp.c_str(), strlen(rp.c_str()), 0);*/ //여기선 단순히 문자열 출력하는 방법
-			std::string	rp = "HTTP/1.1 200 OK\r\nConnection: close\r\nContent-Length: 67\r\nContent-type: text/html\r\n\r\n<!DOCTYPE html>\r\n<link rel=\"short icon\" href=\"#\">\r\n<h1>TESTING</h1>";
+
+	//		std::string	rp = "HTTP/1.1 200 OK\r\nConnection: close\r\nContent-Length: 16\r\nContent-type: text/html\r\n\r\n<h1>TESTING</h1>";
+			std::string rp = request_msg;
 			send(it->fd, rp.c_str(), strlen(rp.c_str()), 0); //recv에 맞춰서 write도 send로 변경
 			FD_CLR(it->fd, &((*fds).write_fds));
 			//FD_SET(it->fd, &((*fds).read_fds));
@@ -61,12 +67,13 @@ void	exec_webserv(config &cf)
 	IO_fd_set		fds;
 	connection		cn(cf, fds.read_fds);
 	request			rq;
+	std::string		request_msg;
 
 	while (true)
 	{
-		if (connect_socket_and_parsing(&fds, &cn, &rq))
+		if (connect_socket_and_parsing(&fds, &cn, &rq, request_msg))
 			continue;
-		exec_request(cf, fds.write_fds, rq);
+		exec_request(cf, fds.write_fds, &rq, request_msg);
 	}
 }
 
@@ -76,8 +83,7 @@ int		main(void)
 	{
 		config cf("webserv.conf");
 		config_parsing(cf);
-		//print_cf_data(cf); //이걸로 cf출력 볼수 있습니다. 
-
+//		print_cf_data(cf); //이걸로 cf출력 볼수 있습니다. 
 		exec_webserv(cf); //나중에 config 받아서~
 	}
 	catch(const std::exception& e)
