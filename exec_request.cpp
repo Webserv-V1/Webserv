@@ -614,8 +614,8 @@ void    exec_request(config &cf, fd_set &write_fds, request *rq, std::string &re
 		set(m_state_code, m_mt);
 		
 		//=====================입력값 확인.=====================
-	    request::iterator it = rq->rq_begin(); //rq 맨 처음에 있는 값에 대해       처리
-	    if (!rq->is_invalid(it)) //일단 그 값이 유효할 때만 출력 -> 나중에         유효하지 않으면 해당되는 에러 페이지 호출하도록
+	  request::iterator it = rq->rq_begin(); //rq 맨 처음에 있는 값에 대해       처리
+	  if (!rq->is_invalid(it)) //일단 그 값이 유효할 때만 출력 -> 나중에         유효하지 않으면 해당되는 에러 페이지 호출하도록
 	        rq->print();
 		try{
       			exec_header(cf, *it, cf_i, m_mt);

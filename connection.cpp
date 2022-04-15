@@ -1,34 +1,47 @@
 #include "./include/connection.hpp"
 
-connection::connection(fd_set &rfds) : server_size(0), fd_arr(), read_fds(rfds)
+connection::connection(config &cf, fd_set &rfds) : server_size(0), fd_arr(), read_fds(rfds)
 {
 	int serv_sock;
+	int reuse = 1;
 	struct sockaddr_in	serv_adr;
 	//지금은 하나의 서버만 생성한다고 가정해서 작성하지만 나중엔 Config를 받아서 서버를 모두 생성하도록 수정
-	//1. 서버 소켓 하나 생성
-	if ((serv_sock = socket(PF_INET, SOCK_STREAM, 0)) == -1)
-		throw (connection::socket_error());
-	server_size++;
-	fd_arr.push_back(fd_info(serv_sock));
-	//2. socket에 IP, Port 번호 할당
-	memset(&serv_adr, 0, sizeof(serv_adr));
-	serv_adr.sin_family = AF_INET;
-	serv_adr.sin_addr.s_addr = htonl(INADDR_ANY);
-	serv_adr.sin_port = htons(100); //일단은 포트 번호 100로 설정
-	if (bind(serv_sock, reinterpret_cast<struct sockaddr*>(&serv_adr), sizeof(serv_adr)) == -1)
-		throw (connection::bind_error());
-	//3. server socket에 클라이언트 접속 요청 대기할 수 있도록 - 일단 10개의 수신 대기열
-	if (listen(serv_sock, 10) == -1)
-		throw (connection::listen_error());
-	FD_SET(serv_sock, &read_fds); //read_fds에서 서버 fd 활성화
-	fcntl(serv_sock, F_SETFL, O_NONBLOCK);
-	//소켓 프로그래밍에서 4.클라이언트 접속 요청 수락하는 부분, 5.클라이언트와 연결된 소켓으로 데이터 송수신하는 부분은 다른 메서드에서
+	for (int i = 0; i < cf.v_s.size(); i++)
+	{
+		std::cout << "server " << i << std::endl;
+		//1. 서버 소켓 하나 생성
+		if ((serv_sock = socket(PF_INET, SOCK_STREAM, 0)) == -1)
+			throw (connection::socket_error());
+		server_size++;
+		fd_arr.push_back(fd_info(serv_sock));
+		//2. socket에 IP, Port 번호 할당
+		memset(&serv_adr, 0, sizeof(serv_adr));
+		serv_adr.sin_family = AF_INET;
+		std::cout << "IP: " << cf.v_s[i].v_listen[1] << ", Port: " << cf.v_s[i].v_listen[0] << std::endl;
+		serv_adr.sin_addr.s_addr = inet_addr(cf.v_s[i].v_listen[1].c_str());
+		int port = convert_to_num(cf.v_s[i].v_listen[0], 10);
+		serv_adr.sin_port = htons(port); //일단은 포트 번호 100로 설정
+		if (setsockopt(serv_sock, SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(reuse)) == -1) //바로 주소 재사용가능하도록 설정
+			throw (connection::setsockopt_error());
+		if (setsockopt(serv_sock, SOL_SOCKET, SO_REUSEPORT, &reuse, sizeof(reuse)) == -1) //바로 포트 재사용가능하도록 설정
+			throw (connection::setsockopt_error());
+		if (bind(serv_sock, reinterpret_cast<struct sockaddr*>(&serv_adr), sizeof(serv_adr)) == -1)
+			throw (connection::bind_error());
+		//3. server socket에 클라이언트 접속 요청 대기할 수 있도록 - 일단 10개의 수신 대기열
+		if (listen(serv_sock, 128) == -1)
+			throw (connection::listen_error());
+		FD_SET(serv_sock, &read_fds); //read_fds에서 서버 fd 활성화
+		fcntl(serv_sock, F_SETFL, O_NONBLOCK);
+		//소켓 프로그래밍에서 4.클라이언트 접속 요청 수락하는 부분, 5.클라이언트와 연결된 소켓으로 데이터 송수신하는 부분은 다른 메서드에서
+	}
 }
 
 connection::~connection(void)
 {
+	//std::cout << "connection destructor\n";
 	for (int i = 0; i < fd_arr.size(); i++)
 		close(fd_arr[i].fd);
+	fd_arr.clear();
 }
 
 connection::iterator	connection::fd_arr_begin(void)
@@ -80,9 +93,11 @@ void					connection::connect_client(int serv_sock)
 	struct sockaddr_in	clnt_adr;
 	socklen_t			adr_sz = sizeof(clnt_adr);
 
-	//4.클라이언트 접속 요청 수락하는 부분 
+	//4.클라이언트 접속 요청 수락하는 부분
 	if ((clnt_sock = accept(serv_sock, reinterpret_cast<struct sockaddr*>(&clnt_adr), &adr_sz)) == -1)
 		throw (connection::accept_error());
+	std::cout << "connecting: serv - " << serv_sock << ", clnt - " << clnt_sock << "\n";
+	std::cout << "clnt info: IP - " << inet_ntoa(clnt_adr.sin_addr) << ", Port - " << ntohs(clnt_adr.sin_port) << std::endl;
 	FD_SET(clnt_sock, &read_fds);
 	fcntl(clnt_sock, F_SETFL, O_NONBLOCK); //각 클라이언트 fd를 논블로킹으로 설정
 	fd_arr.push_back(fd_info(clnt_sock, serv_sock));
@@ -92,7 +107,14 @@ void					connection::disconnect_client(int clnt_sock)
 {
 	std::vector<fd_info>::iterator it;
 
+	if (is_server_socket(clnt_sock))
+		return ;
+	std::cout << "remain fd: ";
 	for (it = fd_arr.begin(); it != fd_arr.end(); ++it)
+		std::cout << it->fd << " ";
+	std::cout << std::endl;
+	std::cout << "disconnecting: clnt - " << clnt_sock << std::endl << std::endl;
+	for (it = fd_arr.begin() + server_size; it != fd_arr.end(); ++it)
 	{
 		if (it->fd == clnt_sock)
 		{
@@ -125,24 +147,22 @@ void					connection::concatenate_client_msg(fd_info &clnt_info, std::string to_a
 
 bool					connection::is_input_completed(fd_info &clnt_info, request &rq)
 {
+	request::iterator	it;
 	//clnt_info에 status 추가 - 디폴트 값 : RQ_LINE_NOT_PARSED, rq라인 파싱 이후 HEADER_NOT_PARSED, 헤더를 파싱한 이후에 본문 처리 여부에 따라 NO_BODY, TRANSFER_ENCODING, CONTENT_LENGTH 중 하나로 저장됨.
 	if (clnt_info.status == RQ_LINE_NOT_PARSED && clnt_info.msg.find("\n") != std::string::npos)
 	{
-		if (!parse_rq_line(clnt_info, rq))
-			return (true);
+		it = parse_rq_line(clnt_info, rq);
+		if (rq.is_invalid(it))
+			return (completed_input(rq, it, "", -1));
 	}
-	if (clnt_info.status == HEADER_NOT_PARSED && clnt_info.msg.rfind("\n\n") != std::string::npos) //헤더 부분이 완전히 들어와 파싱 처리를 해줄 상태
+	if (clnt_info.status == HEADER_NOT_PARSED && clnt_info.msg.find("\n\n") != std::string::npos) //헤더 부분이 완전히 들어와 파싱 처리를 해줄 상태
 	{
-		parse_client_header_by_line(clnt_info); //헤더 내용까지만 파싱 (\n\n 오기 전까지만)
-		request::iterator it = rq.find_clnt_in_tmp(clnt_info.fd);
-		rq.insert_header(it, clnt_info.split_msg); //rq 내부 tmp_rq에 헤더 내용을 임시 저장
-		is_body_exist(clnt_info, it, rq); //파싱된 헤더 내용을 기준으로 status값을 업데이트
+		it = parse_client_header_by_line(clnt_info, rq); //헤더 내용까지만 파싱 (\n\n 오기 전까지만)
+		is_body_exist(clnt_info, rq, it); //파싱된 헤더 내용을 기준으로 status값을 업데이트
 		if (clnt_info.status == NO_BODY)
-		{
-			rq.insert(it, ""); //추가할 본문이 없다면 빈 문자열만 삽입하고 종료를 의미
-			return (true);
-		}
-		return (false);
+			return (completed_input(rq, it, "", -1)); //추가할 본문이 없다면 빈 문자열만 삽입하고 종료를 의미
+		if (clnt_info.msg.empty())
+			return (false);
 	}
 	if (clnt_info.status == TRANSFER_ENCODING) //플래그 값이 transfer-encoding일 때 다른 함수를 호출해서 입력 종료 여부 반환
 		return (is_transfer_encoding_completed(clnt_info, rq));
@@ -151,26 +171,31 @@ bool					connection::is_input_completed(fd_info &clnt_info, request &rq)
 	return (false);
 }
 
-bool					connection::parse_rq_line(fd_info &clnt_info, request &rq)
+bool					connection::completed_input(request &rq, request::iterator &it, std::string body, int err_no)
 {
-	size_t		next = clnt_info.msg.find("\n");
-	std::string	res = clnt_info.msg.substr(0, next);
-	clnt_info.msg = clnt_info.msg.substr(next + 1);
-	request::iterator	it = rq.insert_rq_line(clnt_info.fd, res);
-	clnt_info.status = HEADER_NOT_PARSED;
-	if (rq.is_invalid(it))
-	{
-		rq.insert(it, "");
-		return (false);
-	}
+	if (err_no != -1)
+		rq.set_error(it, err_no);
+	rq.insert(it, body);
 	return (true);
 }
 
-void					connection::parse_client_header_by_line(fd_info &clnt_info)
+request::iterator		connection::parse_rq_line(fd_info &clnt_info, request &rq)
+{
+	size_t		next = clnt_info.msg.find("\n");
+	std::string	res = clnt_info.msg.substr(0, next);
+	clnt_info.msg = clnt_info.msg.substr(next);
+	request::iterator	it = rq.insert_rq_line(clnt_info.fd, res);
+	clnt_info.status = HEADER_NOT_PARSED;
+	return (it);
+}
+
+request::iterator		connection::parse_client_header_by_line(fd_info &clnt_info, request &rq)
 {
 	size_t	last = 0;
 	size_t	next = 0;
 
+	while (clnt_info.msg[last] == '\n')
+		last++;
 	while ((next = clnt_info.msg.find("\n", last)) != std::string::npos)
 	{
 		clnt_info.split_msg.push_back(clnt_info.msg.substr(last, next - last));
@@ -182,19 +207,20 @@ void					connection::parse_client_header_by_line(fd_info &clnt_info)
 		}
 	}
 	clnt_info.msg = clnt_info.msg.substr(last); //\n\n 앞의 내용들은 파싱해서 저장해줬으니 그 뒷내용(body)들만 msg에 다시 저장
+	request::iterator it = rq.find_clnt_in_tmp(clnt_info.fd);
+	rq.insert_header(it, clnt_info.split_msg);
+	return (it);
 }
 
-void					connection::is_body_exist(fd_info &clnt_info, request::iterator &it, request &rq)
+void					connection::is_body_exist(fd_info &clnt_info, request &rq, request::iterator &it)
 {
-	if ((it->first).is_invalid || !rq.which_method(it, "POST")) //telnet 이용 시 본문이 필요하지 않는 메서드는 아예 입력 종료 -> POST가 아닐 때는 더 이상 입력x
+	if (rq.is_invalid(it) || !rq.which_method(it, "POST")) //telnet 이용 시 본문이 필요하지 않는 메서드는 아예 입력 종료 -> POST가 아닐 때는 더 이상 입력x
 	{
 		clnt_info.status = NO_BODY;
 		return ;
 	}
 	bool	te_flag = rq.is_existing_header(it, "Transfer-Encoding");
 	bool	cl_flag = rq.is_existing_header(it, "Content-Length");
-	//if (te_flag && cl_flag) //transfer, content 헤더 둘 다 있으면 에러 -> telnet 확인해보니 그냥 transfer로 처리
-	//	rq.set_error(it, 400); //400이 맞는지 확인
 	if (te_flag)
 		clnt_info.status = TRANSFER_ENCODING;
 	else if (cl_flag)
@@ -215,8 +241,7 @@ bool					connection::is_transfer_encoding_completed(fd_info &clnt_info, request 
 		{
 			try
 			{
-				if ((length = stoi(clnt_info.msg.substr(0, next))) < 0)
-					throw (request::incorrect_body_length_error());
+				length = convert_to_num(clnt_info.msg.substr(0, next), 16); //내부에서 변환이 잘못 됐거나 음수면 에러 throw
 				last = next + 1;
 				tmp = last;
 				int	clnt_length = 0;
@@ -227,10 +252,7 @@ bool					connection::is_transfer_encoding_completed(fd_info &clnt_info, request 
 					std::string	tmp_str = clnt_info.msg.substr(last, next - last);
 					clnt_length = body_length(tmp_str);
 					if (!length)
-					{
-						rq.insert(it, clnt_info.tmp);
-						return (true);
-					}
+						return (completed_input(rq, it, clnt_info.tmp, -1));
 					if (length == clnt_length)
 					{
 						if (!clnt_info.tmp.empty())
@@ -246,18 +268,12 @@ bool					connection::is_transfer_encoding_completed(fd_info &clnt_info, request 
 			}
 			catch(const std::exception& e)
 			{
-				rq.set_error(it, 400);
-				rq.insert(it, "");
-				return (true);
+				return (completed_input(rq, it, "", 400));
 			}
 		}
 	}
 	else
-	{
-		rq.set_error(it, 501);
-		rq.insert(it, "");
-		return (true);
-	}
+		return (completed_input(rq, it, "", 501));
 	return (false);
 }
 
@@ -268,9 +284,7 @@ bool					connection::is_content_length_completed(fd_info &clnt_info, request &rq
 
 	try
 	{
-		length = stoi(rq.corresponding_header_value(it, "Content-Length")); //stoi 함수는 C++11
-		if (length < 0)
-			throw (request::invalid_header_error());
+		length = convert_to_num(rq.corresponding_header_value(it, "Content-Length"), 10);
 		if (clnt_info.msg[clnt_info.msg.length() - 1] != '\n')
 			return (false);
 		int		clnt_length = body_length(clnt_info.msg.substr(0, clnt_info.msg.length() - 1)); //마지막 \n은 제외하고 길이 계산
@@ -281,13 +295,20 @@ bool					connection::is_content_length_completed(fd_info &clnt_info, request &rq
 	}
 	catch (const std::exception& e)
 	{
-		rq.set_error(it, 400);
+		return (completed_input(rq, it, "", 400));
 	}
-	if ((it->first).is_invalid)
-		rq.insert(it, "");
-	else
-		rq.insert(it, clnt_info.msg.substr(0, clnt_info.msg.length() - 1));
-	return (true);
+	return (completed_input(rq, it, clnt_info.msg.substr(0, clnt_info.msg.length() - 1), -1));
+}
+
+int						connection::convert_to_num(std::string str_length, int radix)
+{
+	if (str_length.empty())
+		throw (request::incorrect_body_length_error());
+	char	*end;
+	int		length = static_cast<int>(strtol(str_length.c_str(), &end, radix));
+	if (*end || length < 0)
+		throw (request::incorrect_body_length_error());
+	return (length);
 }
 
 int						connection::body_length(std::string msg)
