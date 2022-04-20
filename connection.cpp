@@ -31,7 +31,7 @@ connection::connection(config &cf, fd_set &rfds) : server_size(0), fd_arr(), rea
 		if (listen(serv_sock, 128) == -1)
 			throw (connection::listen_error());
 		FD_SET(serv_sock, &read_fds); //read_fds에서 서버 fd 활성화
-		fcntl(serv_sock, F_SETFL, O_NONBLOCK);
+		//fcntl(serv_sock, F_SETFL, O_NONBLOCK);
 		//소켓 프로그래밍에서 4.클라이언트 접속 요청 수락하는 부분, 5.클라이언트와 연결된 소켓으로 데이터 송수신하는 부분은 다른 메서드에서
 	}
 }
