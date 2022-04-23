@@ -14,7 +14,7 @@ CGI_preprocessing::CGI_preprocessing(request &rq, conf_index &cf_i)
 	env["CONTENT_LENGTH"] = std::to_string(rq.body_length(body));
 	env["QUERY_STRING"] = cf_i.query_string; //나중에 쿼리 스트링으로 수정
 	env["SERVER_NAME"] = rq.corresponding_header_value(it, "HOST");
-	env["SERVER_PORT"] = it->first.server_iCGI_preprocessingnfo->v_listen[0];
+	env["SERVER_PORT"] = it->first.server_info->v_listen[0];
 	env["SERVER_PROTOCOL"] = "HTTP/1.1";
 	env["SERVER_SOFTWARE"] = "Webserv/1.0";
 }
