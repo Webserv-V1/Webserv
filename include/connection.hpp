@@ -41,15 +41,14 @@ public:
 class fd_info
 {
 public:
-	int							fd; //현재 파일디스크립터
-	int							server_sock; //이 fd가 클라이언트라면 연결된 서버fd를 의미, 서버라면 -1 -> 나중에 연결된 서버 페이지를 보여준다던가 할 때 사용하려고 일단 fd를 넣고 해당 config 내용이 필요하다면 나중에 수정
+	int							fd; //현재 파일디스크립터 (서버 fd라도 본인 info 보유)
+	server						*server_info; //해당 fd와 연결된 서버 클래스 포인터
 	std::string					tmp; //transfer-encoding 때 파싱한 문자열을 저장할 임시 문자열
 	std::string					msg; //이 fd가 클라이언트라면 입력받은 문자열을 받아서 나중에 \n 기준으로 split_msg에 추가
 	std::vector<std::string>	split_msg;
 	int							status;
 
-	fd_info(int f) : fd(f), server_sock(-1), tmp(""), msg(""), split_msg(), status(RQ_LINE_NOT_PARSED) {}
-	fd_info(int f, int s) : fd(f), server_sock(s), tmp(""), msg(""), split_msg(), status(RQ_LINE_NOT_PARSED) {}
+	fd_info(int f, server *s) : fd(f), server_info(s), tmp(""), msg(""), split_msg(), status(RQ_LINE_NOT_PARSED) {}
 };
 
 class connection
@@ -68,7 +67,7 @@ public:
 	iterator					fd_arr_end(void);
 	bool						is_server_socket(int fd);
 	int							max_fd(void);
-	fd_info						&info_of_fd(int clnt_sock);
+	fd_info						&info_of_fd(int fd);
 	void						connect_client(int serv_sock);
 	void						disconnect_client(int clnt_sock);
 	void						get_client_msg(int clnt_sock, request &rq);

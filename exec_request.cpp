@@ -25,13 +25,13 @@ void make_map_mime_types (std::map<std::string, std::string > &m_mt, std::string
 {
 	int flag = 0;
 	std::string key;
-	for(int i = 0; i < readLine.size(); i++)
+	for(int i = 0; i < (int)readLine.size(); i++)
 	{
 		if(isalpha(readLine[i]))
 		{
 			int j;
 			std::string s_tmp = "";
-			for(j = i; j < readLine.size(); j++)
+			for(j = i; j < (int)readLine.size(); j++)
 			{
 				if(readLine[j] == ' ' || readLine[j] == '	' || readLine[j] == ';')
 					break;
@@ -180,28 +180,29 @@ void exec_method(config &cf, request::iterator rq_iter, conf_index &cf_i)
 
 void	parsing_url(config &cf, request::value_type &fd_data, conf_index &cf_i)
 {
+	(void)cf;
 //	std::cout << "url :test  ==== " <<  fd_data.first.url << std::endl;
 	std::string tmp = "";
 	std::string key_tmp = "";
 	int save_flag = 0;
-	for(int i = 0; i < fd_data.first.url.size(); i++)
+	for(int i = 0; i < (int)fd_data.first.url.size(); i++)
 	{
 		tmp +=  fd_data.first.url[i];
-		if((i + 1 == fd_data.first.url.size() && save_flag == 0) || (fd_data.first.url[i + 1] == '?' && save_flag == 0))
+		if((i + 1 == (int)fd_data.first.url.size() && save_flag == 0) || (fd_data.first.url[i + 1] == '?' && save_flag == 0))
 		{
 			cf_i.request_url = tmp;
 			save_flag = 1;
 			tmp = "";
 			i = i + 1;
 		}
-		else if(save_flag == 1 && (i + 1 == fd_data.first.url.size() || fd_data.first.url[i + 1] == '=') )
+		else if(save_flag == 1 && (i + 1 == (int)fd_data.first.url.size() || fd_data.first.url[i + 1] == '=') )
 		{
 			save_flag = 2;
 			key_tmp = tmp;
 			tmp = "";
 			i = i + 1;
 		}
-		else if(save_flag == 2  && (i + 1 == fd_data.first.url.size() || (i + 2 < fd_data.first.url.size() && (fd_data.first.url[i + 1] == '&'  && fd_data.first.url[i + 2] == '&'))))
+		else if(save_flag == 2  && (i + 1 == (int)fd_data.first.url.size() || (i + 2 < (int)fd_data.first.url.size() && (fd_data.first.url[i + 1] == '&'  && fd_data.first.url[i + 2] == '&'))))
 		{
 			save_flag = 1;
 			cf_i.m_qurry_string[key_tmp] = tmp;
@@ -228,7 +229,7 @@ int my_compare_string(std::string tmp1, std::string tmp2)
 	//tmp1만큼만 비교,
 	if(tmp1.size() > tmp2.size())
 		return 0;
-	for(int i = 0; i < tmp1.size(); i++)
+	for(int i = 0; i < (int)tmp1.size(); i++)
 	{
 		if(tmp1[i] != tmp2[i])
 			return 0;
@@ -241,14 +242,14 @@ void find_cf_location_i(config &cf, request::value_type &fd_data, conf_index &cf
 	int same_value = 0;
 	parsing_url(cf, fd_data,cf_i);
 
-	for(int i = 0; i < cf.v_s[cf_i.server].location_path.size(); i++)
+	for(int i = 0; i < (int)cf.v_s[cf_i.server].location_path.size(); i++)
 	{
 //		std::cout <<  cf.v_s[cf_i.server].location_path[i] << "  ::::  " << cf_i.request_url  << " size : " <<cf.v_s[cf_i.server].location_path[i].size() << " compare : " << cf.v_s[cf_i.server].location_path[i].compare(0,  cf.v_s[cf_i.server].location_path[i].size(), cf_i.request_url) << "    :" << cf.v_s[cf_i.server].location_path[i][0] << ":    :"<<cf_i.request_url[0] << ":" <<  std::endl;
 		if(my_compare_string(cf.v_s[cf_i.server].location_path[i], cf_i.request_url) == 1)
 		{
 			if(cf.v_s[cf_i.server].location_path[i].size() == 1 || (cf_i.request_url.size() == cf.v_s[cf_i.server].location_path[i].size()) || cf_i.request_url[cf.v_s[cf_i.server].location_path[i].size()] == '/')
 			{
-				if(same_value < cf.v_s[cf_i.server].location_path[i].size())
+				if(same_value < (int)cf.v_s[cf_i.server].location_path[i].size())
 				{
 					same_value = cf.v_s[cf_i.server].location_path[i].size();
 					cf_i.location = i;
@@ -256,7 +257,7 @@ void find_cf_location_i(config &cf, request::value_type &fd_data, conf_index &cf
 				}
 			}
 		}
-		if(i + 1 == cf.v_s[cf_i.server].location_path.size())
+		if(i + 1 == (int)cf.v_s[cf_i.server].location_path.size())
 		{
 			if (same_value != 0)
 				break;
@@ -271,14 +272,14 @@ void find_cf_location_i(config &cf, request::value_type &fd_data, conf_index &cf
 
 void find_cf_server_i(config &cf, request::value_type &fd_data, conf_index &cf_i)
 {
-	for(int i = 0; i < cf.v_s.size(); i++)
+	for(int i = 0; i < (int)cf.v_s.size(); i++)
 	{
 		if(cf.v_s[i].listen == fd_data.second["host"])
 		{
 			cf_i.server = i;
 			break;
 		}
-		if(i + 1 == cf.v_s.size())
+		if(i + 1 == (int)cf.v_s.size())
 		{
 			cf_i.server = 0;
 			std::cout << "cf.v_s[i].listen : " << cf.v_s[i].listen <<std::endl;
@@ -365,7 +366,7 @@ void confirmed_file_path_and_file_type(config &cf, conf_index &cf_i, std::map<st
 	if(cf.v_s[cf_i.server].v_l[cf_i.location].m_location.find("index") == cf.v_s[cf_i.server].v_l[cf_i.location].m_location.end())
 		cf.v_s[cf_i.server].v_l[cf_i.location].m_location["index"].push_back("index.html");
 	//std::cout << "server : " << cf_i.server << "   location : " << cf_i.location << std::endl;
-	for(int cnt = 0; cnt < cf.v_s[cf_i.server].v_l[cf_i.location].m_location["index"].size(); cnt++)
+	for(int cnt = 0; cnt < (int)cf.v_s[cf_i.server].v_l[cf_i.location].m_location["index"].size(); cnt++)
 	{
 		cf_i.file_path = cf_i.root_path + cf_i.request_url_remaining + "/" +  cf.v_s[cf_i.server].v_l[cf_i.location].m_location["index"][cnt];
 		std::ifstream readFile( cf_i.file_path.c_str() );
@@ -390,7 +391,7 @@ void confirmed_file_path_and_file_type(config &cf, conf_index &cf_i, std::map<st
 			}
 			break;		
 		}
-		if (cnt + 1 == cf.v_s[cf_i.server].v_l[cf_i.location].m_location["index"].size())
+		if (cnt + 1 == (int)cf.v_s[cf_i.server].v_l[cf_i.location].m_location["index"].size())
 		{
 			if(cf.v_s[cf_i.server].v_l[cf_i.location].m_location.find("auto_index") != cf.v_s[cf_i.server].v_l[cf_i.location].m_location.end() && cf.v_s[cf_i.server].v_l[cf_i.location].m_location["auto_index"][0] == "on")
 				cf_i.autoindex_flag = 1;
@@ -545,7 +546,7 @@ void exec_error_page(conf_index &cf_i, config &cf, int &error_code, std::vector<
 {
 	std::ifstream readFile;
 
-	for(int i = 0; i < v_error_page.size() - 1; i++)
+	for(int i = 0; i < (int)v_error_page.size() - 1; i++)
 	{
 		if(stoi(v_error_page[i]) == error_code)
 		{

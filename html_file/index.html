@@ -6,10 +6,12 @@
 html { color-scheme: light dark; }
 body { width: 35em; margin: 0 auto;
 font-family: Tahoma, Verdana, Arial, sans-serif; }
+h2 { color:darksalmon; }
 </style>
 </head>
 <body>
 <h1>Welcome to Webserv!</h1>
+<h2>First index page</h2>
 <p>If you see this page, the Webserv is successfully installed and
 working. Further configuration is required.</p>
 
@@ -18,6 +20,25 @@ working. Further configuration is required.</p>
 Commercial support is available at
 <a href="http://nginx.com/">nginx.com</a>.</p>
 
-<p><em>Thank you for using nginx.</em></p>
+<p><em>Thank you for using webserv.</em></p>
+
+<hr>
+<p>Receive data with <em>"GET"</em> method</p>
+<p>-> Data that may be exposed as URL</p>
+<form action="/cgi-bin/get_name.php" method="get">
+	First Name: <input type = "text" name = "first_name"> <br />
+	Last Name: <input type = "text" name = "last_name" />
+	<input type = "submit" value = "Submit" />
+</form>
+
+<hr>
+<p>Receive data with <em>"POST"</em> method</p>
+<p>-> Data that should not be exposed as URL</p>
+<form action="/cgi-bin/get_profile.php" method="post">
+	ID : <input type = "text" name = "ID"> <br />
+	PW : <input type = "text" name = "PW" />
+	<input type = "submit" value = "Submit" />
+</form>
+
 </body>
 </html>

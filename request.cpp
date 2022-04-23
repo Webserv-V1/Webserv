@@ -15,9 +15,14 @@ bool					request::empty(void) const
 	return (rq.empty());
 }
 
-bool					request::is_invalid(request::iterator it)
+bool					request::is_invalid(request::iterator &it)
 {
 	return ((it->first).is_invalid);
+}
+
+int						request::get_errno(request::iterator &it)
+{
+	return ((it->first).err_no);
 }
 
 void					request::print(void)
@@ -71,9 +76,9 @@ void					request::print_tmp(void)
 	}
 }
 
-request::iterator		request::insert_rq_line(int clnt_fd, std::string rq_line)
+request::iterator		request::insert_rq_line(int clnt_fd, server *server_info, std::string rq_line)
 {
-	request::first_type		first(clnt_fd);
+	request::first_type		first(clnt_fd, server_info);
 	size_t					next, last = 0;
 	for (int i = 0; i < 3; i++)
 	{
@@ -97,7 +102,7 @@ request::iterator		request::insert_header(iterator &it, std::vector<std::string>
 {
 	size_t		next;
 	std::string	key, value;
-	for (int i = 0; i < msg_header.size(); i++)
+	for (int i = 0; i < (int)msg_header.size(); i++)
 	{
 		next = msg_header[i].find(":"); //각 헤더를 ":" 기준으로 분리
 		key = msg_header[i].substr(0, next);
@@ -205,7 +210,14 @@ std::string				request::corresponding_header_value(request::iterator &it, std::s
 {
 	std::transform(header.begin(), header.end(), header.begin(), ::tolower); //소문자로 모두 변경
 	request::second_type::iterator it2 = (it->second).find(header);
+	if (it2 == (it->second).end())
+		return ("");
 	return (it2->second);
+}
+
+std::string				request::get_body(request::iterator &it)
+{
+	return (it->second[""]);
 }
 
 bool					request::set_error(request::iterator &it, int err_no)
@@ -215,4 +227,17 @@ bool					request::set_error(request::iterator &it, int err_no)
 	(it->first).is_invalid = true;
 	(it->first).err_no = err_no;
 	return (true);
+}
+
+int						request::body_length(std::string msg)
+{
+	size_t	newline_num = 0;
+	size_t	last = 0;
+	size_t	next = 0;
+	while ((next = msg.find("\n", last)) != std::string::npos)
+	{
+		newline_num++;
+		last = next + 1;
+	}
+	return (msg.length() + newline_num); //msg의 실제 길이 + \r 개수
 }

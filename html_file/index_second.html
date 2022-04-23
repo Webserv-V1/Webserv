@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Welcome to Webserv!</title>
+<style>
+html { color-scheme: light dark; }
+body { width: 35em; margin: 0 auto;
+font-family: Tahoma, Verdana, Arial, sans-serif; }
+h2 { color:yellowgreen; }
+</style>
+</head>
+<body>
+<h1>Welcome to Webserv!</h1>
+<h2>Second index page</h2>
+<p>If you see this page, the Webserv is successfully installed and
+working. Further configuration is required.</p>
+
+<p>For online documentation and support please refer to
+<a href="http://nginx.org/">nginx.org</a>.<br/>
+Commercial support is available at
+<a href="http://nginx.com/">nginx.com</a>.</p>
+
+<p><em>Thank you for using webserv.</em></p>
+
+<hr>
+<form action = "/cgi-bin/get_selection.php" method = "POST">
+	<p>Would you rather Question</p>
+	<input type = "radio" name = "first" value = "1-1" checked = "checked"/> Have more time 
+	<input type = "radio" name = "first" value = "1-2" /> Have more money<br/>
+	<input type = "radio" name = "second" value = "2-1" checked = "checked"/> Have many good friends
+	<input type = "radio" name = "second" value = "2-2" /> Have one very best friend<br/>
+	<input type = "radio" name = "third" value = "3-1" checked = "checked"/> Hear the good news first 
+	<input type = "radio" name = "third" value = "3-2" /> Hear the bad news first<br/>
+
+	<p>Choose your favorite Colors</p>
+	<input type = "checkbox" name = "red" value = "on" /> Red
+	<input type = "checkbox" name = "orange" value = "on" /> Orange
+	<input type = "checkbox" name = "yellow" value = "on" /> Yellow
+	<input type = "checkbox" name = "green" value = "on" /> Green
+	<input type = "checkbox" name = "blue" value = "on" /> Blue
+	<input type = "checkbox" name = "purple" value = "on" /> Purple
+
+	<p>Leave a rating!</p>
+	<select name = "dropdown">
+		<option value = "5" selected>&#9733&#9733&#9733&#9733&#9733</option>
+		<option value = "4">&#9733&#9733&#9733&#9733</option>
+		<option value = "3">&#9733&#9733&#9733</option>
+		<option value = "2">&#9733&#9733</option>
+		<option value = "1">&#9733</option>
+	</select>
+	<input type = "submit" value = "Submit" />
+</form>
+
+<hr>
+<form action = "/cgi-bin/get_textarea.php" method = "post">
+	<p>Leave a comment!</p>
+	<textarea name = "textcontent" cols = "40" rows = "4"></textarea>
+	<input type = "submit" value = "Submit" />
+</form>
+
+</body>
+</html>

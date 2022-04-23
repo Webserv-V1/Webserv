@@ -6,14 +6,14 @@ connection::connection(config &cf, fd_set &rfds) : server_size(0), fd_arr(), rea
 	int reuse = 1;
 	struct sockaddr_in	serv_adr;
 	//지금은 하나의 서버만 생성한다고 가정해서 작성하지만 나중엔 Config를 받아서 서버를 모두 생성하도록 수정
-	for (int i = 0; i < cf.v_s.size(); i++)
+	for (int i = 0; i < (int)cf.v_s.size(); i++)
 	{
 		std::cout << "server " << i << std::endl;
 		//1. 서버 소켓 하나 생성
 		if ((serv_sock = socket(PF_INET, SOCK_STREAM, 0)) == -1)
 			throw (connection::socket_error());
 		server_size++;
-		fd_arr.push_back(fd_info(serv_sock));
+		fd_arr.push_back(fd_info(serv_sock, &cf.v_s[i]));
 		//2. socket에 IP, Port 번호 할당
 		memset(&serv_adr, 0, sizeof(serv_adr));
 		serv_adr.sin_family = AF_INET;
@@ -39,7 +39,7 @@ connection::connection(config &cf, fd_set &rfds) : server_size(0), fd_arr(), rea
 connection::~connection(void)
 {
 	//std::cout << "connection destructor\n";
-	for (int i = 0; i < fd_arr.size(); i++)
+	for (int i = 0; i < (int)fd_arr.size(); i++)
 		close(fd_arr[i].fd);
 	fd_arr.clear();
 }
@@ -100,7 +100,7 @@ void					connection::connect_client(int serv_sock)
 	std::cout << "clnt info: IP - " << inet_ntoa(clnt_adr.sin_addr) << ", Port - " << ntohs(clnt_adr.sin_port) << std::endl;
 	FD_SET(clnt_sock, &read_fds);
 	fcntl(clnt_sock, F_SETFL, O_NONBLOCK); //각 클라이언트 fd를 논블로킹으로 설정
-	fd_arr.push_back(fd_info(clnt_sock, serv_sock));
+	fd_arr.push_back(fd_info(clnt_sock, info_of_fd(serv_sock).server_info));
 }
 
 void					connection::disconnect_client(int clnt_sock)
@@ -184,7 +184,7 @@ request::iterator		connection::parse_rq_line(fd_info &clnt_info, request &rq)
 	size_t		next = clnt_info.msg.find("\n");
 	std::string	res = clnt_info.msg.substr(0, next);
 	clnt_info.msg = clnt_info.msg.substr(next);
-	request::iterator	it = rq.insert_rq_line(clnt_info.fd, res);
+	request::iterator	it = rq.insert_rq_line(clnt_info.fd, clnt_info.server_info, res);
 	clnt_info.status = HEADER_NOT_PARSED;
 	return (it);
 }
