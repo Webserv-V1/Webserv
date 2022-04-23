@@ -422,7 +422,10 @@ void config_parsing(config &cf)
 		readFile.close();
 	}
 	else
+	{
+		std::cout << "11" << std::endl;
 		throw open_fail();
+	}
 	last_check(cf);
 }
 
