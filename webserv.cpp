@@ -45,18 +45,118 @@ bool	connect_socket_and_parsing(IO_fd_set *fds, connection *cn, request *rq, std
 	return false;
 }
 
+void make_map_mime_types (std::map<std::string, std::string > &m_mt, std::string readLine)
+{
+	int flag = 0;
+	std::string key;
+
+	for(int i = 0; i < readLine.size(); i++)
+	{
+		if(isalpha(readLine[i]))
+		{
+			int j;
+			std::string s_tmp = "";
+			for(j = i; j < readLine.size(); j++)
+			{
+				if(readLine[j] == ' ' || readLine[j] == '	' || readLine[j] == ';')
+					break;
+				s_tmp += readLine[j];
+			}
+			if(flag == 0)
+			{
+				key = s_tmp;
+				flag++;
+			}
+			else
+				m_mt[s_tmp] = key;
+			i = j;
+		}
+	}
+}
+
+void set_m_state_code(std::map<int, std::string> &m_state_code )
+{
+	m_state_code[100] = "Continue";
+	m_state_code[101] = "Switching Protocols";
+	m_state_code[200] = "OK";
+	m_state_code[201] = "Created";
+	m_state_code[202] = "Accepted";
+	m_state_code[203] = "Non-Authoritative Information";
+	m_state_code[204] = "No Content";
+	m_state_code[205] = "Reset Content";
+	m_state_code[206] = "Partial Content";
+	m_state_code[300] = "Multiple Choices";
+	m_state_code[301] = "Moved Permanently";
+	m_state_code[302] = "Found";
+	m_state_code[303] = "See Other";
+	m_state_code[304] = "Not Modified";
+	m_state_code[305] = "Use Proxy";
+	m_state_code[307] = "Temporary Redirect";
+	m_state_code[400] = "Bad Request";
+	m_state_code[401] = "Unauthorized";
+	m_state_code[402] = "Payment Required";
+	m_state_code[403] = "Forbidden";
+	m_state_code[404] = "Not Found";
+	m_state_code[405] = "Method Not Allowed";
+	m_state_code[406] = "Not Acceptable";
+	m_state_code[407] = "Proxy Authentication Required";
+	m_state_code[408] = "Request Timeout";
+	m_state_code[409] = "Conflict";
+	m_state_code[410] = "Gone";
+	m_state_code[411] = "Length Required";
+	m_state_code[412] = "Precondition Failed";
+	m_state_code[413] = "Payload Too Large";
+	m_state_code[414] = "URI Too Long";
+	m_state_code[415] = "Unsupported Media Type";
+	m_state_code[416] = "Range Not Satisfiable";
+	m_state_code[417] = "Expectation Failed";
+	m_state_code[426] = "Upgrade Required";
+	m_state_code[500] = "Internal Server Error";
+	m_state_code[501] = "Not Implemented";
+	m_state_code[502] = "Bad Gateway";
+	m_state_code[503] = "Service Unavailable";
+	m_state_code[504] = "Gateway Timeout";
+	m_state_code[505] = "HTTP Version Not Supported";
+}
+
+void set_m_mt(std::map<std::string, std::string > &m_mt)
+{
+	std::string readLine ="";
+	std::ifstream readFile;
+
+	readFile.open("./mime.types.default");
+	if (readFile.is_open())
+	{
+		while (getline(readFile, readLine))
+			make_map_mime_types (m_mt, readLine);
+		readFile.close();
+	}
+	else{
+		throw mime_open_error();
+	}
+}
+
+void set(std::map<int, std::string> &m_state_code, std::map<std::string, std::string > &m_mt)
+{
+	set_m_state_code(m_state_code);
+	set_m_mt(m_mt);
+}
+
 void	exec_webserv(config &cf)
 {
 	IO_fd_set		fds;
 	connection		cn(fds.read_fds);
 	request			rq;
 	std::string		request_msg;
+	std::map<int, std::string> m_state_code;
+	std::map<std::string, std::string > m_mt;
 
+	set(m_state_code, m_mt);
 	while (true)
 	{
 		if (connect_socket_and_parsing(&fds, &cn, &rq, request_msg))
 			continue;
-		exec_request(cf, fds.write_fds, &rq, request_msg);
+		exec_request(cf, fds.write_fds, &rq, request_msg, m_state_code, m_mt);
 	}
 }
 
