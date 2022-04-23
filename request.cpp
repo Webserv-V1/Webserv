@@ -66,7 +66,7 @@ void					request::print_tmp(void)
 			std::cerr << "Cannot print because it's an invalid format" << std::endl;
 			continue ;
 		}
-		for (it2 = ++(it->second).begin(); it2 != (it->second).end(); ++it2)
+		for (it2 = (it->second).begin(); it2 != (it->second).end(); ++it2)
 			std::cout << "\tkey: " << it2->first << ", value: " << it2->second << std::endl;
 	}
 }
@@ -86,20 +86,18 @@ request::iterator		request::insert_rq_line(int clnt_fd, std::string rq_line)
 			first.version = rq_line.substr(last);
 		last = next + 1;
 	}
-	if (check_info_invalid(first))
-		first.is_invalid = true;
 	tmp_rq.push_back(std::make_pair(first, second_type()));
-	return (tmp_rq.end() - 1);
+	request::iterator	it = tmp_rq.end() - 1;
+	if (check_info_invalid(first))
+		set_error(it, 400);
+	return (it);
 }
 
 request::iterator		request::insert_header(iterator &it, std::vector<std::string> msg_header)
 {
-	//request::first_type		first(clnt_fd);
-	//request::second_type	second = parse_header(first, msg_header);
-	//tmp_rq.push_back(std::make_pair(first, second));
 	size_t		next;
 	std::string	key, value;
-	for (int i = 0; !msg_header[i].empty(); i++)
+	for (int i = 0; i < msg_header.size(); i++)
 	{
 		next = msg_header[i].find(":"); //각 헤더를 ":" 기준으로 분리
 		key = msg_header[i].substr(0, next);
@@ -107,10 +105,15 @@ request::iterator		request::insert_header(iterator &it, std::vector<std::string>
 		std::string	tmp = msg_header[i].substr(next + 1); //양옆 공백 제거
 		tmp = tmp.erase(tmp.find_last_not_of(" ") + 1);
 		value = tmp.erase(0, tmp.find_first_not_of(" "));
-		(it->second).insert(std::make_pair(key, value));
+		std::pair<second_type::iterator, bool>	res = (it->second).insert(std::make_pair(key, value));
+		if (!res.second)
+		{
+			set_error(it, 400);
+			break ;
+		}
 	}
 	if (check_header_invalid(it->second))
-		(it->first).is_invalid = true;
+		set_error(it, 400);
 	return (tmp_rq.end() - 1);
 }
 

@@ -581,7 +581,8 @@ void    exec_request(config &cf, fd_set &write_fds, request *rq, std::string &re
 		request_msg = "";
 	    std::cout << "executing method(GET, POST, DELETE)" << std::endl;
 		//=====================입력값 확인.=====================
-	    if (!rq->is_invalid(it)) //일단 그 값이 유효할 때만 출력 -> 나중에         유효하지 않으면 해당되는 에러 페이지 호출하도록
+
+	  if (!rq->is_invalid(it))
 	        rq->print();
 		try{
       		exec_header(cf, *it, cf_i, m_mt);
