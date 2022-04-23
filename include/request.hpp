@@ -7,18 +7,20 @@
 # include <algorithm>
 # include <vector>
 # include <map>
+# include "parsing.hpp"
 
 class base_request
 {
 public:
-	int			fd; 
+	int			fd;
+	server		*server_info;
 	std::string	method;
 	std::string	url;
 	std::string	version;
 	bool		is_invalid;
 	int			err_no;
 
-	base_request(int fd_) : fd(fd_), method(""), url(""), version(""), is_invalid(false), err_no(-1) {}
+	base_request(int fd_, server *server) : fd(fd_), server_info(server), method(""), url(""), version(""), is_invalid(false), err_no(-1) {}
 
 	bool	operator<(const base_request &base) const
 	{
@@ -43,10 +45,11 @@ public:
 	iterator	rq_begin(void);
 	iterator	rq_end(void);
 	bool		empty(void) const;
-	bool		is_invalid(iterator it);
+	bool		is_invalid(iterator &it);
+	int			get_errno(iterator &it);
 	void		print(void);
 	void		print_tmp(void);
-	iterator	insert_rq_line(int clnt_fd, std::string rq_line);
+	iterator	insert_rq_line(int clnt_fd, server *server_info, std::string rq_line);
 	iterator	insert_header(iterator &it, std::vector<std::string> msg_header);
 	iterator	insert(iterator &it, std::string msg_body);
 	void		erase(iterator &it);
@@ -57,7 +60,9 @@ public:
 	bool		which_method(iterator &it, std::string method);
 	bool		is_existing_header(iterator &it, std::string header);
 	std::string	corresponding_header_value(iterator &it, std::string header);
+	std::string	get_body(iterator &it);
 	bool		set_error(iterator &it, int err_no);
+	int			body_length(std::string msg);
 
 	class	invalid_header_error : public std::exception
 	{

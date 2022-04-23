@@ -20,9 +20,35 @@
 #include <string.h>
 #include <stdlib.h>
 #include <fcntl.h>
-
 #include "./include/exec_request.hpp"
-//#include <io.h>
+
+void make_map_mime_types (std::map<std::string, std::string > &m_mt, std::string readLine)
+{
+	int flag = 0;
+	std::string key;
+	for(int i = 0; i < (int)readLine.size(); i++)
+	{
+		if(isalpha(readLine[i]))
+		{
+			int j;
+			std::string s_tmp = "";
+			for(j = i; j < (int)readLine.size(); j++)
+			{
+				if(readLine[j] == ' ' || readLine[j] == '	' || readLine[j] == ';')
+					break;
+				s_tmp += readLine[j];
+			}
+			if(flag == 0)
+			{
+				key = s_tmp;
+				flag++;
+			}
+			else
+				m_mt[s_tmp] = key;
+			i = j;
+		}
+	}
+}
 
 std::string make_GMT_time()
 {
@@ -149,7 +175,7 @@ int my_compare_string(std::string tmp1, std::string tmp2)
 	//tmp1만큼만 비교,
 	if(tmp1.size() > tmp2.size())
 		return 0;
-	for(int i = 0; i < tmp1.size(); i++)
+	for(int i = 0; i < (int)tmp1.size(); i++)
 	{
 		if(tmp1[i] != tmp2[i])
 			return 0;
@@ -161,6 +187,7 @@ void find_cf_location_i(config &cf, request::value_type &fd_data, conf_index &cf
 {
 	int same_value = 0;
 
+	for(int i = 0; i < (int)cf.v_s[cf_i.server].location_path.size(); i++)
 	parsing_url(cf, fd_data,cf_i);
 	for(int i = 0; i < cf.v_s[cf_i.server].location_path.size(); i++)
 	{
@@ -168,7 +195,7 @@ void find_cf_location_i(config &cf, request::value_type &fd_data, conf_index &cf
 		{
 			if(cf.v_s[cf_i.server].location_path[i].size() == 1 || (cf_i.request_url.size() == cf.v_s[cf_i.server].location_path[i].size()) || cf_i.request_url[cf.v_s[cf_i.server].location_path[i].size()] == '/')
 			{
-				if(same_value < cf.v_s[cf_i.server].location_path[i].size())
+				if(same_value < (int)cf.v_s[cf_i.server].location_path[i].size())
 				{
 					same_value = cf.v_s[cf_i.server].location_path[i].size();
 					cf_i.location = i;
@@ -176,7 +203,7 @@ void find_cf_location_i(config &cf, request::value_type &fd_data, conf_index &cf
 				}
 			}
 		}
-		if(i + 1 == cf.v_s[cf_i.server].location_path.size())
+		if(i + 1 == (int)cf.v_s[cf_i.server].location_path.size())
 		{
 			if (same_value != 0)
 				break;
@@ -189,14 +216,14 @@ void find_cf_location_i(config &cf, request::value_type &fd_data, conf_index &cf
 
 void find_cf_server_i(config &cf, request::value_type &fd_data, conf_index &cf_i)
 {
-	for(int i = 0; i < cf.v_s.size(); i++)
+	for(int i = 0; i < (int)cf.v_s.size(); i++)
 	{
 		if(cf.v_s[i].listen == fd_data.second["host"])
 		{
 			cf_i.server = i;
 			break;
 		}
-		if(i + 1 == cf.v_s.size())
+		if(i + 1 == (int)cf.v_s.size())
 		{
 			cf_i.server = 0;
 			std::cout << "cf.v_s[i].listen : " << cf.v_s[i].listen <<std::endl;
@@ -289,7 +316,8 @@ void confirmed_file_path_and_file_type(config &cf, conf_index &cf_i, std::map<st
 {
 	if(cf.v_s[cf_i.server].v_l[cf_i.location].m_location.find("index") == cf.v_s[cf_i.server].v_l[cf_i.location].m_location.end())
 		cf.v_s[cf_i.server].v_l[cf_i.location].m_location["index"].push_back("index.html");
-	for(int cnt = 0; cnt < cf.v_s[cf_i.server].v_l[cf_i.location].m_location["index"].size(); cnt++)
+
+	for(int cnt = 0; cnt < (int)cf.v_s[cf_i.server].v_l[cf_i.location].m_location["index"].size(); cnt++)
 	{
 		cf_i.file_path = cf_i.root_path + cf_i.request_url_remaining + "/" +  cf.v_s[cf_i.server].v_l[cf_i.location].m_location["index"][cnt];
 		std::ifstream readFile( cf_i.file_path.c_str());
@@ -304,7 +332,7 @@ void confirmed_file_path_and_file_type(config &cf, conf_index &cf_i, std::map<st
 			readFile.close(); // 맞겠지? 
 			break;		
 		}
-		if (cnt + 1 == cf.v_s[cf_i.server].v_l[cf_i.location].m_location["index"].size())
+		if (cnt + 1 == (int)cf.v_s[cf_i.server].v_l[cf_i.location].m_location["index"].size())
 		{
 			if(cf.v_s[cf_i.server].v_l[cf_i.location].m_location.find("auto_index") != cf.v_s[cf_i.server].v_l[cf_i.location].m_location.end() && cf.v_s[cf_i.server].v_l[cf_i.location].m_location["auto_index"][0] == "on")
 				cf_i.autoindex_flag = 1;
@@ -509,7 +537,7 @@ void exec_error_page(conf_index &cf_i, config &cf, int &error_code, std::vector<
 {
 	std::ifstream readFile;
 
-	for(int i = 0; i < v_error_page.size() - 1; i++)
+	for(int i = 0; i < (int)v_error_page.size() - 1; i++)
 	{
 		if(stoi(v_error_page[i]) == error_code)
 		{
