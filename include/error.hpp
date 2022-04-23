@@ -52,6 +52,9 @@ struct config_error_return : std::exception {
 struct root_and_location_error : std::exception {
   const char* what() const throw() {return "root랑 location 경로 안열림!";}
 };
+struct mime_open_error : std::exception {
+  const char* what() const throw() {return "mime_file open error!";}
+};
 
 
 #endif
