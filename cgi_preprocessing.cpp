@@ -64,7 +64,7 @@ std::string		CGI_preprocessing::exec_CGI(void)
 		{
 			dup2(fdin, STDIN_FILENO);
 			dup2(fdout, STDOUT_FILENO);
-			execve(("./" + env["SCRIPT_NAME"]).c_str(), 0, env_arr);
+			execve(("." + env["SCRIPT_NAME"]).c_str(), 0, env_arr);
 			write(STDOUT_FILENO, "Status: 500 Internal Server Error\r\n\r\n", 37);
 			exit(1);
 		}

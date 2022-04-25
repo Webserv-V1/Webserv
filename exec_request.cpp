@@ -482,6 +482,7 @@ void make_request_msg(int &state_code, std::string &request_msg, conf_index &cf_
 	request_msg += "Connection: " + cf_i.Connection + "\r\n";
 	// 주의! : CGI 실행되고 connection 다시한번 확인하기!!
 	request_msg += (std::string)"Date: " + make_GMT_time() + "\r\n";
+	request_msg += "Cache-Control: no-store\r\n";
 	//request_msg += "\r\n";
 	if(cf_i.cgi_flag == true)
 	{
@@ -588,9 +589,10 @@ void make_request(int &state_code, std::string &request_msg, conf_index &cf_i, s
 			cf_i.cgi_flag = true;
 			CGI_preprocessing cgi((*rq), cf_i);
 			std::cout << " ############# exec_cgi ############## " << std::endl;
-			std::cout << cgi.exec_CGI() << std::endl;
+			std::string cgi_res = cgi.exec_CGI();
+			//std::cout << cgi_res << std::endl;
 			std::cout << " ############# exec_cgi ############## " << std::endl;
-			CGI_header_and_body = check_firstline (cgi.exec_CGI(), state_code);
+			CGI_header_and_body = check_firstline (cgi_res, state_code);
 		}
 		request_msg = (std::string)"HTTP/1.1 " + std::to_string(state_code) + " " + m_state_code[state_code] + "\r\n";
 		if(cf_i.autoindex_flag != 1)
@@ -611,8 +613,9 @@ void    exec_request(config &cf, fd_set &write_fds, request *rq, std::string &re
 	    std::cout << "executing method(GET, POST, DELETE)" << std::endl;
 		//=====================입력값 확인.=====================
 
-	  if (!rq->is_invalid(it))
-	        rq->print();
+		rq->print();
+	 /* if (!rq->is_invalid(it))
+	        rq->print();*/
 		try{
       		exec_header(cf, *it, cf_i);
 			exec_method(cf, it, cf_i);
@@ -636,5 +639,6 @@ void    exec_request(config &cf, fd_set &write_fds, request *rq, std::string &re
 		}
 	    FD_SET((it->first).fd, &write_fds); //해당 fd에 대해 출력할 수 있도록 설정
 		rq->erase(it);
+		std::cout << "ending exec_request\n";
 	}
 }

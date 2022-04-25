@@ -4,10 +4,11 @@ $body = "";
 $body .= "<!DOCTYPE html>\n";
 $body .= "<html>\n";
 $body .= "<head>\n";
-$body .= "<title>Outputs for <em>get_profile</em> CGI program</title>\n";
+$body .= "<title>Outputs for get_profile CGI program</title>\n";
 $body .= "</head>\n";
 $body .= "<body>\n";
 
+$body .= "<h1>Outputs for <em>get_profile</em> CGI program</h1>\n";
 if (isset($_REQUEST['textcontent']))
 {
 	$body .= "<p>You left the following comments:<br/>";

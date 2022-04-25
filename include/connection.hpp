@@ -71,6 +71,7 @@ public:
 	void						connect_client(int serv_sock);
 	void						disconnect_client(int clnt_sock);
 	void						get_client_msg(int clnt_sock, request &rq);
+	void						clear_client_msg(int clnt_sock);
 	void						concatenate_client_msg(fd_info &clnt_info, std::string to_append);
 	bool						is_input_completed(fd_info &clnt_info, request &rq);
 	bool						completed_input(request &rq, request::iterator &it, std::string body, int err_no);

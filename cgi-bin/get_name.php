@@ -4,10 +4,11 @@ $body = "";
 $body .= "<!DOCTYPE html>\n";
 $body .= "<html>\n";
 $body .= "<head>\n";
-$body .= "<title>Outputs for <em>get_name</em> CGI program</title>\n";
+$body .= "<title>Outputs for get_name CGI program</title>\n";
 $body .= "</head>\n";
 $body .= "<body>\n";
 
+$body .= "<h1>Outputs for <em>get_name</em> CGI program</h1>\n";
 if (isset($_REQUEST['first_name']))
 {
 	$body .= "<p>Your first name is ";

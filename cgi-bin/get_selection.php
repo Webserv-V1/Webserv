@@ -4,11 +4,12 @@ $body = "";
 $body .= "<!DOCTYPE html>\n";
 $body .= "<html>\n";
 $body .= "<head>\n";
-$body .= "<title>Outputs for <em>get_selection</em> CGI program</title>\n";
+$body .= "<title>Outputs for get_selection CGI program</title>\n";
 $body .= "</head>\n";
 $body .= "<body>\n";
 
-$body .= "<p>You selected '";
+$body .= "<h1>Outputs for <em>get_selection</em> CGI program</h1>\n";
+/*$body .= "<p>You selected '";
 $body .= $_REQUEST['first'];
 $body .= "' in first question!</p>\n";
 $body .= "<p>You selected '";
@@ -35,7 +36,7 @@ $body .= "</p>\n";
 
 $body .= "<p>You gave me ";
 $body .= $_REQUEST['dropdown'];
-$body .= "stars</p>\n";
+$body .= "stars</p>\n";*/
 
 $body .= "</body>\n";
 $body .= "</html>\n";
