@@ -9,15 +9,6 @@
 # include "parsing.hpp"
 # include "exec_request.hpp"
 
-/*class conf_index
-{
-public:
-	std::string	request_url;
-	std::string query_string;
-
-	conf_index(std::string r, std::string q) : request_url(r), query_string(q) {}
-};*/
-
 # define BUF_SIZE 100
 
 class CGI_preprocessing
