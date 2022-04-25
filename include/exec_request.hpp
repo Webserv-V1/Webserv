@@ -1,13 +1,34 @@
 #ifndef EXEC_REQUEST_HPP
 # define EXEC_REQUEST_HPP
-# include "connection.hpp"
-# include "request.hpp"
-# include "parsing.hpp"
+#include <iostream>
+#include <exception>
+#include <iostream>
+#include <string>
+#include <algorithm>    // std::replace
+#include <sstream>
+#include "request.hpp"
+#include "connection.hpp"
+#include "parsing.hpp"
+#include "error.hpp"
+#include "../default_conf.hpp"
+#include <sys/select.h> /* According to earlier standards */
+#include <sys/time.h>
+#include <sys/types.h>
+#include <unistd.h>
+#include <dirent.h>
+#include <sys/stat.h>
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+#include <fcntl.h>
+
+
 
 class conf_index {
 	public :
 		int server;
 		int location;
+		bool cgi_flag;
 		bool autoindex_flag;
 
 		std::string Connection;
@@ -18,12 +39,13 @@ class conf_index {
 		std::string redirect_path;
 		std::string request_url;
 		std::string request_url_remaining;
-		std::string qurry_string;
-		std::map <std::string, std::string> m_qurry_string;
+		std::string query_string;
+		std::map <std::string, std::string> m_query_string;
 
 	conf_index() {
 		server = -1;
 		location = -1;
+		cgi_flag = false;
 		autoindex_flag = false;
 
 		root_path = "";
@@ -34,12 +56,12 @@ class conf_index {
 		redirect_path = "";
 		request_url = "";
 		request_url_remaining = "";
-		qurry_string = "";
+		query_string = "";
 	}
 };
 
 void    exec_request(config &cf, fd_set &write_fds, request *rq, std::string &request_msg, std::map<int, std::string> &m_state_code, std::map<std::string, std::string > &m_mt);
-
+void	make_request(int &state_code, std::string &request_msg, conf_index &cf_i, std::map<int, std::string> &m_state_code, config &cf, std::map<std::string, std::string > &m_mt, request *rq);
 
 
 #endif

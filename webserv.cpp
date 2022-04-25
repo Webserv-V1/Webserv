@@ -52,11 +52,11 @@ void make_map_mime_types (std::map<std::string, std::string > &m_mt, std::string
 	int flag = 0;
 	std::string key;
 
-	for(int i = 0; i < readLine.size(); i++)
+	for(size_t i = 0; i < readLine.size(); i++)
 	{
 		if(isalpha(readLine[i]))
 		{
-			int j;
+			size_t j;
 			std::string s_tmp = "";
 			for(j = i; j < readLine.size(); j++)
 			{

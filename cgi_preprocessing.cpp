@@ -54,7 +54,12 @@ std::string		CGI_preprocessing::exec_CGI(void)
 		write(fdin, body.c_str(), body.length());
 
 		if ((pid = fork()) == -1)
+		{
+			for (int i = 0; env_arr[i]; i++)
+				delete[] env_arr[i];
+			delete[] env_arr;
 			throw (CGI_preprocessing::fork_error());
+		}
 		else if (!pid)
 		{
 			dup2(fdin, STDIN_FILENO);

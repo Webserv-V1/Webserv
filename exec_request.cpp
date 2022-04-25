@@ -1,55 +1,6 @@
-#include <iostream>
-#include <exception>
-#include <iostream>
-#include <string>
-#include <algorithm>    // std::replace
-#include <sstream>
-#include "./include/request.hpp"
-#include "./include/connection.hpp"
+#include "./include/cgi_preprocessing.hpp"
 #include "./include/exec_request.hpp"
-#include "./include/parsing.hpp"
-#include "./include/error.hpp"
-#include "./default_conf.hpp"
-#include <sys/select.h> /* According to earlier standards */ 
-#include <sys/time.h> 
-#include <sys/types.h> 
-#include <unistd.h>
-#include <dirent.h>
-#include <sys/stat.h>
-#include <stdio.h>
-#include <string.h>
-#include <stdlib.h>
-#include <fcntl.h>
-#include "./include/exec_request.hpp"
-
-void make_map_mime_types (std::map<std::string, std::string > &m_mt, std::string readLine)
-{
-	int flag = 0;
-	std::string key;
-	for(int i = 0; i < (int)readLine.size(); i++)
-	{
-		if(isalpha(readLine[i]))
-		{
-			int j;
-			std::string s_tmp = "";
-			for(j = i; j < (int)readLine.size(); j++)
-			{
-				if(readLine[j] == ' ' || readLine[j] == '	' || readLine[j] == ';')
-					break;
-				s_tmp += readLine[j];
-			}
-			if(flag == 0)
-			{
-				key = s_tmp;
-				flag++;
-			}
-			else
-				m_mt[s_tmp] = key;
-			i = j;
-		}
-	}
-}
-
+class CGI_preprocessing;
 std::string make_GMT_time()
 {
 	time_t rawtime;
@@ -109,16 +60,16 @@ void exec_method(config &cf, request::iterator rq_iter, conf_index &cf_i)
 }
 
 
-void	parsing_url(config &cf, request::value_type &fd_data, conf_index &cf_i)
+void	parsing_url(request::value_type &fd_data, conf_index &cf_i)
 {
 	if(fd_data.first.url.size() == 0)
 		throw 400; //확인 : url이 아예없으면 잘못된 요청!
-	for(int i = 0; i < fd_data.first.url.size(); i++)
+	for(size_t i = 0; i < fd_data.first.url.size(); i++)
 	{
 		if(fd_data.first.url[i] == '?')
 		{
 			cf_i.request_url = fd_data.first.url.substr(0, i);
-			cf_i.qurry_string = fd_data.first.url.substr(i + 1);
+			cf_i.query_string = fd_data.first.url.substr(i + 1);
 			break;
 		}
 		if(i + 1 == fd_data.first.url.size())
@@ -126,13 +77,13 @@ void	parsing_url(config &cf, request::value_type &fd_data, conf_index &cf_i)
 			cf_i.request_url = fd_data.first.url;
 		}
 	}
-// 잔해... qurrystring 짤랐던거..
+// 잔해... querystring 짤랐던거..
 //	std::cout << "url :test  ==== " <<  fd_data.first.url << std::endl;
 //	std::string tmp = "";
 //	std::string key_tmp = "";
 //	int save_flag = 0;
 //	std::cout <<" 11 : " << cf_i.request_url << std::endl;
-//	std::cout <<" 22 : " << cf_i.qurry_string << std::endl;
+//	std::cout <<" 22 : " << cf_i.query_string << std::endl;
 //	for(int i = 0; i < fd_data.first.url.size(); i++)
 //	{
 //		tmp +=  fd_data.first.url[i];
@@ -153,18 +104,18 @@ void	parsing_url(config &cf, request::value_type &fd_data, conf_index &cf_i)
 //		else if(save_flag == 2  && (i + 1 == fd_data.first.url.size() || (i + 2 < fd_data.first.url.size() && (fd_data.first.url[i + 1] == '&'  && fd_data.first.url[i + 2] == '&'))))
 //		{
 //			save_flag = 1;
-//			cf_i.m_qurry_string[key_tmp] = tmp;
+//			cf_i.m_query_string[key_tmp] = tmp;
 //			key_tmp = "";
 //			tmp = "";
 //			i = i + 2;
 //		}
 //	}
 
-// qurrystring
+// querystring
 //	std::cout << " ======-====== " << std::endl;
 //	std::cout << " ======-====== " << std::endl;
 //	std::cout << " cf_i.request_url : "  << cf_i.request_url << std::endl;
-//	for(std::map<std::string, std::string>::iterator it = cf_i.m_qurry_string.begin();  it != cf_i.m_qurry_string.end(); it++)
+//	for(std::map<std::string, std::string>::iterator it = cf_i.m_query_string.begin();  it != cf_i.m_query_string.end(); it++)
 //		std::cout <<"first : "<<  it->first << " second : " << it->second <<std::endl;
 //	std::cout << " ======-====== " << std::endl;
 //	std::cout << " ======-====== " << std::endl;
@@ -185,17 +136,17 @@ int my_compare_string(std::string tmp1, std::string tmp2)
 
 void find_cf_location_i(config &cf, request::value_type &fd_data, conf_index &cf_i)
 {
-	int same_value = 0;
+	size_t same_value = 0;
 
-	for(int i = 0; i < (int)cf.v_s[cf_i.server].location_path.size(); i++)
-	parsing_url(cf, fd_data,cf_i);
-	for(int i = 0; i < cf.v_s[cf_i.server].location_path.size(); i++)
+	for(size_t i = 0; i < cf.v_s[cf_i.server].location_path.size(); i++)
+	parsing_url(fd_data,cf_i);
+	for(size_t i = 0; i < cf.v_s[cf_i.server].location_path.size(); i++)
 	{
 		if(my_compare_string(cf.v_s[cf_i.server].location_path[i], cf_i.request_url) == 1)
 		{
 			if(cf.v_s[cf_i.server].location_path[i].size() == 1 || (cf_i.request_url.size() == cf.v_s[cf_i.server].location_path[i].size()) || cf_i.request_url[cf.v_s[cf_i.server].location_path[i].size()] == '/')
 			{
-				if(same_value < (int)cf.v_s[cf_i.server].location_path[i].size())
+				if(same_value < cf.v_s[cf_i.server].location_path[i].size())
 				{
 					same_value = cf.v_s[cf_i.server].location_path[i].size();
 					cf_i.location = i;
@@ -203,7 +154,7 @@ void find_cf_location_i(config &cf, request::value_type &fd_data, conf_index &cf
 				}
 			}
 		}
-		if(i + 1 == (int)cf.v_s[cf_i.server].location_path.size())
+		if(i + 1 == cf.v_s[cf_i.server].location_path.size())
 		{
 			if (same_value != 0)
 				break;
@@ -288,7 +239,7 @@ int check_filesize(std::ifstream &readFile, conf_index &cf_i, config &cf)
 	return 0;
 }
 
-void find_file_type(std::string &file_name, conf_index &cf_i, std::map<std::string, std::string> &m_mt, bool &cgi_flag)
+void find_file_type(std::string &file_name, conf_index &cf_i, std::map<std::string, std::string> &m_mt)
 {
 	for(int str_i = file_name.size() - 1; str_i > 0; str_i--)
 	{
@@ -296,23 +247,17 @@ void find_file_type(std::string &file_name, conf_index &cf_i, std::map<std::stri
 			break ;
 		else if(file_name[str_i] == '.')
 		{
-			if(file_name.substr(str_i + 1) == "php")
-			{
-				cgi_flag = 1;
-				std::cout << file_name <<  " : CCCCCCCCCC GGGGGGGGGG  IIIIIIII" << std::endl;
-			}
-			else if(m_mt.find(file_name.substr(str_i + 1)) != m_mt.end())
+			if(m_mt.find(file_name.substr(str_i + 1)) != m_mt.end())
 			{
 				cf_i.file_type = m_mt[file_name.substr(str_i + 1)];
+				//설명 : 여기서 해당하는게 없으면 msg생성할때 넣어줌
 			}
 			break;
-//					else
-//						throw 400;
 		}
 	}
 }
 
-void confirmed_file_path_and_file_type(config &cf, conf_index &cf_i, std::map<std::string, std::string> &m_mt)
+void confirmed_file_path_and_file_type(config &cf, conf_index &cf_i)
 {
 	if(cf.v_s[cf_i.server].v_l[cf_i.location].m_location.find("index") == cf.v_s[cf_i.server].v_l[cf_i.location].m_location.end())
 		cf.v_s[cf_i.server].v_l[cf_i.location].m_location["index"].push_back("index.html");
@@ -323,12 +268,13 @@ void confirmed_file_path_and_file_type(config &cf, conf_index &cf_i, std::map<st
 		std::ifstream readFile( cf_i.file_path.c_str());
 		if (readFile.is_open())
 		{
+			//~~CGI~~~//
+
 			if(413 == check_filesize(readFile, cf_i, cf))
 			{
 				readFile.close();
 				throw 413; //확인 : 요청한 파일을 열어보고 사이즈가 더 크면 413 에러
 			}
-			//find_file_type(cf.v_s[cf_i.server].v_l[cf_i.location].m_location["index"][cnt], cf_i, m_mt);
 			readFile.close(); // 맞겠지? 
 			break;		
 		}
@@ -351,8 +297,23 @@ void exec_redirection(config &cf, conf_index &cf_i)
 		throw stoi(cf.v_s[cf_i.server].v_l[cf_i.location].m_location["return"][0]);
 	}
 }
+bool check_cgi(std::string file_path)
+{
+	for(int str_i = file_path.size() - 1; str_i > 0; str_i--)
+	{
+		if(file_path[str_i] == '/')
+			break ;
+		else if(file_path[str_i] == '.')
+		{
+			if(file_path.substr(str_i + 1) == "php")
+				return true;
+			break;
+		}
+	}
+	return 0;
+}
 
-void exec_header(config &cf, request::value_type &fd_data, conf_index &cf_i, std::map<std::string, std::string> &m_mt)
+void exec_header(config &cf, request::value_type &fd_data, conf_index &cf_i)
 {
 	if(fd_data.second.find("host") !=  fd_data.second.end())
 	{
@@ -371,7 +332,7 @@ void exec_header(config &cf, request::value_type &fd_data, conf_index &cf_i, std
 	find_cf_location_i(cf, fd_data, cf_i);
 	exec_redirection(cf ,cf_i);
 	if(confirmed_root_path(cf, cf_i) == "location is folder")
-		confirmed_file_path_and_file_type(cf, cf_i, m_mt);
+		confirmed_file_path_and_file_type(cf, cf_i);
 }
 
 void exec_body()
@@ -435,13 +396,16 @@ void input_autoindex_data(conf_index &cf_i, std::string &file_data, std::string 
 	file_data.replace(file_data.find(find_str2), find_str2.size(), path_list);
 }
 
-void confirm_file(int &state_code, conf_index &cf_i, std::map<std::string, std::string > &m_mt, std::string &c_open_file)
+void confirm_file(int &state_code, conf_index &cf_i, std::string &c_open_file)
 {
 	if(200 <= state_code && 400 > state_code)
 	{
 		std::string sum_string (DEFAULT_HTML_PATH);
 		if(cf_i.autoindex_flag == 1)
+		{
+			cf_i.cgi_flag = false;
 			c_open_file = sum_string + "/autoindex.html";
+		}
 		else
 			c_open_file = cf_i.file_path;
 	}
@@ -451,11 +415,13 @@ void confirm_file(int &state_code, conf_index &cf_i, std::map<std::string, std::
 		//걱정마! exec_error_page 여기서 열리는지 먼저 확인햇으니까!!!
 		cf_i.Connection = "keep-alive";
 		//error_page 일때 항상 keep-alive
+		cf_i.cgi_flag = false;
 	}
 	else
 	{
 		c_open_file = (std::string)DEFAULT_HTML_PATH + "/" + std::to_string(state_code) + ".html";
 		cf_i.Connection = "keep-alive";
+		cf_i.cgi_flag = false;
 	}
 }
 void open_file_data(std::string &file_data, std::string &c_open_file)
@@ -490,28 +456,18 @@ void exec_autoindex(int &state_code, conf_index &cf_i, std::string &file_data)
 	}
 }
 
-void make_request_msg(int &state_code, std::string &request_msg, conf_index &cf_i, std::map<std::string, std::string > &m_mt)
+void make_request_msg(int &state_code, std::string &request_msg, conf_index &cf_i, std::map<std::string, std::string > &m_mt, std::string CGI_header_and_body)
 {
-	bool cgi_flag = 0;
 	std::string c_open_file ="";
 	std::string file_data = "";
 
-	confirm_file(state_code, cf_i, m_mt, c_open_file);
-	find_file_type(c_open_file, cf_i, m_mt, cgi_flag);
-		//1. 여기서 파일 확장자 파악하고, .php일때 cgi실행, 
-		//2. cgi에서 쓰는 헤더 종류 데이터 종류(Content-type), (content-lenth) 위치 정보(Location-type), 상태 정보(Status-type)
-		//3. 만약 cgi_flag == 1이면 cgi를 여기서 실행시켜주자. 
-		//4. 상태코드에 따른 첫번째줄 다시 작성하자.
-	
-	if(cgi_flag == 1)
-	{
-		// ###################################
-		// 여기 cgi  프로그램 실행
-		// ###################################
-		
-		//check_first_line();
-	}
-	else
+	confirm_file(state_code, cf_i, c_open_file);
+	find_file_type(c_open_file, cf_i, m_mt);
+
+//		// 여기서 cGI 만든이유. autoindex나 errorpage 또한 php파일일 경우 적용해주기 위함이다. 
+//		// 문제는 cgi에서  500 에러같은게 터지면 대응하기 어렵다..
+//		//cgi 실행후, 상태코드가. 에러면 다시 에러처리해주어야한다!!!! 즐겁다 즐거워
+	if(cf_i.cgi_flag == false)	
 	{
 		open_file_data(file_data, c_open_file);
 		exec_autoindex(state_code, cf_i, file_data);
@@ -526,11 +482,21 @@ void make_request_msg(int &state_code, std::string &request_msg, conf_index &cf_
 	request_msg += "Connection: " + cf_i.Connection + "\r\n";
 	// 주의! : CGI 실행되고 connection 다시한번 확인하기!!
 	request_msg += (std::string)"Date: " + make_GMT_time() + "\r\n";
-	request_msg += "\r\n";
-	if(cgi_flag == 1)
-		; // 주의! : 여기에는 cgi프로그램 출력값과 request_msg합쳐야할듯.
+	//request_msg += "\r\n";
+	if(cf_i.cgi_flag == true)
+	{
+		request_msg += CGI_header_and_body; // 주의! : 여기에는 cgi프로그램 출력값과 request_msg합쳐야할듯.
+		std::cout << std::endl;
+		std::cout <<"2\n" <<  request_msg  << "\n2"<< std::endl;
+		std::cout << std::endl;
+	}
 	else 		
+	{
+		request_msg += "\r\n";
+		std::cout << "======== request _ msh ========" << std::endl;
 		request_msg += file_data;
+		std::cout << request_msg << std::endl;
+	}
 }
 
 void exec_error_page(conf_index &cf_i, config &cf, int &error_code, std::vector<std::string> &v_error_page, std::string &request_msg, std::map<int, std::string> &m_state_code)
@@ -569,14 +535,9 @@ void error_page(int &state_code, conf_index &cf_i, config &cf, std::string &requ
 	if (cf_i.root_path == "")
 		cf_i.root_path = DEFAULT_HTML_PATH;
 	if (cf_i.server != -1 && cf_i.location != -1 && cf.v_s[cf_i.server].v_l[cf_i.location].m_location.find("error_page") != cf.v_s[cf_i.server].v_l[cf_i.location].m_location.end())
-	{
 		exec_error_page(cf_i, cf, state_code, cf.v_s[cf_i.server].v_l[cf_i.location].m_location["error_page"], request_msg, m_state_code);	
-	}
-	else if (cf_i.server != -1)
-	{
+	else if (cf_i.server != -1 && cf.v_s[cf_i.server].v_error_page.size() != 0)
 		exec_error_page(cf_i, cf, state_code, cf.v_s[cf_i.server].v_error_page[0].second, request_msg, m_state_code);	
-	}
-
 }
 void make_request_redirect(std::string &request_msg, conf_index &cf_i)
 {
@@ -586,23 +547,63 @@ void make_request_redirect(std::string &request_msg, conf_index &cf_i)
 	request_msg += (std::string)"Location: " + cf_i.redirect_path + "\r\n" + "\r\n";
 }
 
-void make_request(int &state_code, std::string &request_msg, conf_index &cf_i, std::map<int, std::string> &m_state_code, config &cf, std::map<std::string, std::string > &m_mt)
+std::string check_firstline (std::string s_CGI, int &state_code)
 {
-	request_msg = (std::string)"HTTP/1.1 " + std::to_string(state_code) + " " + m_state_code[state_code] + "\r\n";
+	std::string num_tmp ="";
+	bool flag = true;
+	for(size_t i = 0; i < s_CGI.size(); i++)
+	{
+		if(s_CGI[i] == '\n')
+		{
+			s_CGI = s_CGI.substr(i + 1);
+			break;
+		}
+		if(flag == true && (s_CGI[i] >= '0' && s_CGI[i] <= '9'))
+		{
+			num_tmp += s_CGI[i];
+		}
+		else if(num_tmp != "" && (s_CGI[i] < '0' || s_CGI[i] > '9'))
+		{
+			state_code = stoi(num_tmp);
+
+			flag = false;
+		}
+	}
+	return s_CGI;
+}
+
+void make_request(int &state_code, std::string &request_msg, conf_index &cf_i, std::map<int, std::string> &m_state_code, config &cf, std::map<std::string, std::string > &m_mt, request *rq)
+{
+	std::string CGI_header_and_body = "";
+
 	if(cf_i.redirect_path != "")
+	{
+		request_msg = (std::string)"HTTP/1.1 " + std::to_string(state_code) + " " + m_state_code[state_code] + "\r\n";
 		make_request_redirect(request_msg, cf_i);
+	}
 	else
 	{
+		if(check_cgi(cf_i.file_path) == true && (state_code >= 200 && state_code < 400))
+		{
+			cf_i.cgi_flag = true;
+			CGI_preprocessing cgi((*rq), cf_i);
+			std::cout << " ############# exec_cgi ############## " << std::endl;
+			std::cout << cgi.exec_CGI() << std::endl;
+			std::cout << " ############# exec_cgi ############## " << std::endl;
+			CGI_header_and_body = check_firstline (cgi.exec_CGI(), state_code);
+		}
+		request_msg = (std::string)"HTTP/1.1 " + std::to_string(state_code) + " " + m_state_code[state_code] + "\r\n";
 		if(cf_i.autoindex_flag != 1)
 			error_page(state_code, cf_i, cf, request_msg, m_state_code);
-		make_request_msg(state_code, request_msg, cf_i, m_mt);
+		make_request_msg(state_code, request_msg, cf_i, m_mt, CGI_header_and_body);
 	}
 }
 
 void    exec_request(config &cf, fd_set &write_fds, request *rq, std::string &request_msg, std::map<int, std::string> &m_state_code, std::map<std::string, std::string > &m_mt)
 {
 	while (!rq->empty())
-	{	
+	{
+		//std::cout << "hi2~ " <<std::endl;
 		conf_index	cf_i;
 	    request::iterator it = rq->rq_begin(); //rq 맨 처음에 있는 값에 대해처리
 
@@ -613,14 +614,14 @@ void    exec_request(config &cf, fd_set &write_fds, request *rq, std::string &re
 	  if (!rq->is_invalid(it))
 	        rq->print();
 		try{
-      		exec_header(cf, *it, cf_i, m_mt);
+      		exec_header(cf, *it, cf_i);
 			exec_method(cf, it, cf_i);
 			exec_body();
 			throw 200; //확인 : GET 일때 정상 응답!
 		}
 		catch (int state_code)
 		{
-			make_request(state_code, request_msg, cf_i, m_state_code, cf, m_mt);
+			make_request(state_code, request_msg, cf_i, m_state_code, cf, m_mt, rq);
 			std::cout << request_msg << std::endl;
 		}
 		catch (std::exception &e)
