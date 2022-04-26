@@ -545,6 +545,7 @@ void make_request_redirect(std::string &request_msg, conf_index &cf_i)
 	//request_msg += (std::string)"Content-Type: text/html" + "\r\n"; //리다이렉션은 필요없을듯..
 	request_msg += (std::string)"Connection: keep-alive" + "\r\n";
 	request_msg += (std::string)"Date: " + make_GMT_time() + "\r\n";
+	request_msg += "Cache-Control: no-store\r\n";
 	request_msg += (std::string)"Location: " + cf_i.redirect_path + "\r\n" + "\r\n";
 }
 
@@ -617,6 +618,8 @@ void    exec_request(config &cf, fd_set &write_fds, request *rq, std::string &re
 	 /* if (!rq->is_invalid(it))
 	        rq->print();*/
 		try{
+			if (rq->is_invalid(it))
+				throw (rq->get_errno(it));
       		exec_header(cf, *it, cf_i);
 			exec_method(cf, it, cf_i);
 			exec_body();

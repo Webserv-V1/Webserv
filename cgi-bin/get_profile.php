@@ -4,12 +4,41 @@ $body = "";
 $body .= "<!DOCTYPE html>\n";
 $body .= "<html>\n";
 $body .= "<head>\n";
-$body .= "<title>Outputs for get_profile CGI program</title>\n";
+$body .= "<title>GET_PROFILE</title>\n";
+$body .= "<style>\n";
+$body .= "html { color-scheme: light dark; }\n";
+$body .= "body { width: 35em; margin: 0 auto;\n";
+$body .= "font-family: Tahoma, Verdana, Arial, sans-serif; }\n";
+$body .= "</style>\n";
 $body .= "</head>\n";
 $body .= "<body>\n";
 
-$body .= "<h1>Outputs for <em>get_profile</em> CGI program</h1>\n";
-if (isset($_REQUEST['ID']))
+$body .= "<h1><em>get_profile</em> CGI program</h1>\n";
+if (strcmp($_SERVER["REQUEST_METHOD"], "GET") == 0)
+	$data = $_SERVER["QUERY_STRING"];
+else
+{
+	fseek(STDIN, 0, SEEK_SET);
+	$data = fread(STDIN, $_SERVER["CONTENT_LENGTH"]);
+}
+parse_str($data, $res);
+if (strlen($res["ID"]) == 0)
+	$body .= "<h3>You didn't set the ID!</h3>\n";
+else
+{
+	$body .= "<h3>Your 'ID' is ";
+	$body .= $res["ID"];
+	$body .= "</h3>\n";
+}
+if (strlen($res["PW"]) == 0)
+	$body .= "<h3>You didn't set the PW!</h3>\n";
+else
+{
+	$body .= "<h3>Your 'PW' is ";
+	$body .= $res["PW"];
+	$body .= "</h3>\n";
+}
+/*if (isset($_REQUEST['ID']))
 {
 	$body .= "<p>Your ID is ";
 	$body .= $_REQUEST['ID'];
@@ -24,7 +53,7 @@ if (isset($_REQUEST['PW']))
 	$body .= "</p>\n";
 }
 else
-	$body .= "<p>You didn't set the password!</p>\n";
+	$body .= "<p>You didn't set the password!</p>\n";*/
 
 $body .= "</body>\n";
 $body .= "</html>\n";

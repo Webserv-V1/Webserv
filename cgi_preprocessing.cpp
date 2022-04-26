@@ -2,8 +2,13 @@
 
 CGI_preprocessing::CGI_preprocessing(request &rq, conf_index &cf_i)
 {
+	char path[256];
+	env["DOCUMENT_ROOT"] = (std::string)getcwd(path, 256);
 	env["GATEWAY_INTERFACE"] = "CGI/1.1";
 	env["SCRIPT_NAME"] = cf_i.request_url;
+	env["SCRIPT_FILENAME"] = (std::string)path + cf_i.request_url;
+	env["PHP_SELF"] = cf_i.request_url;
+	env["PATH_INFO"] = (std::string)path + cf_i.request_url;
 	request::iterator it = rq.rq_begin();
 	env["REQUEST_URI"] = it->first.url;
 	env["REQUEST_METHOD"] = it->first.method;
@@ -13,10 +18,15 @@ CGI_preprocessing::CGI_preprocessing(request &rq, conf_index &cf_i)
 		env["CONTENT_TYPE"] = "text/html";
 	env["CONTENT_LENGTH"] = std::to_string(rq.body_length(body));
 	env["QUERY_STRING"] = cf_i.query_string; //나중에 쿼리 스트링으로 수정
-	env["SERVER_NAME"] = rq.corresponding_header_value(it, "HOST");
+	env["REMOTE_ADDR"] = rq.corresponding_header_value(it, "HOST");
+	env["SERVER_NAME"] = it->first.server_info->v_listen[1];
 	env["SERVER_PORT"] = it->first.server_info->v_listen[0];
 	env["SERVER_PROTOCOL"] = "HTTP/1.1";
 	env["SERVER_SOFTWARE"] = "Webserv/1.0";
+	env["HTTP_HOST"] = it->first.server_info->v_listen[1];
+	env["HTTP_USER_AGENT"] = rq.corresponding_header_value(it, "User-Agent");
+	env["HTTP_ACCEPT_LANGUAGE"] = rq.corresponding_header_value(it, "Accept-Language");
+	env["HTTP_ACCEPT_ENCODING"] = rq.corresponding_header_value(it, "Accept-Encoding");
 }
 
 CGI_preprocessing::~CGI_preprocessing()
@@ -64,7 +74,7 @@ std::string		CGI_preprocessing::exec_CGI(void)
 		{
 			dup2(fdin, STDIN_FILENO);
 			dup2(fdout, STDOUT_FILENO);
-			execve(("." + env["SCRIPT_NAME"]).c_str(), 0, env_arr);
+			execve(env["PATH_INFO"].c_str(), 0, env_arr);
 			write(STDOUT_FILENO, "Status: 500 Internal Server Error\r\n\r\n", 37);
 			exit(1);
 		}

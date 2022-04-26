@@ -148,9 +148,11 @@ void					connection::get_client_msg(int clnt_sock, request &rq)
 		exit(1);
 	}*/
 	//std::cout << "buf: " << buf << std::endl;
+	rq.print_tmp();
 	fd_info &clnt_info = info_of_fd(clnt_sock);
 	//std::cout << "msg: " << clnt_info.msg << std::endl;
 	concatenate_client_msg(clnt_info, buf); //해당 클라이언트에 문자열 이어서 저장
+	//std::cout << "len after concat : " << clnt_info.len << std::endl;
 	if (is_input_completed(clnt_info, rq)) //입력값을 다 받았는지 체크해 입력이 끝났다고 판단되면 read_fds에서 fd 삭제(이때 내부에서 파싱과 같은 처리도 같이..)
 		FD_CLR(clnt_sock, &read_fds);
 }
