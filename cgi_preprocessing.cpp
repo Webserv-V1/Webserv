@@ -68,7 +68,7 @@ std::string		CGI_preprocessing::exec_CGI(void)
 			for (int i = 0; env_arr[i]; i++)
 				delete[] env_arr[i];
 			delete[] env_arr;
-			throw (CGI_preprocessing::fork_error());
+			throw (fork_error());
 		}
 		else if (!pid)
 		{

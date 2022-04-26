@@ -56,5 +56,48 @@ struct mime_open_error : std::exception {
   const char* what() const throw() {return "mime_file open error!";}
 };
 
+class	socket_error : public std::exception
+{
+  virtual const char	*what(void) const throw() { return ("Unexpected error while executing 'socket' function"); }
+};
+class	setsockopt_error : public std::exception
+{
+  virtual const char	*what(void) const throw() { return ("Unexpected error while executing 'setsockopt' function"); }
+};
+class	bind_error : public std::exception
+{
+  virtual const char	*what(void) const throw() { return ("Unexpected error while executing 'bind' function"); }
+};
+class	listen_error : public std::exception
+{
+  virtual const char	*what(void) const throw() { return ("Unexpected error while executing 'listen' function"); }
+};
+class	accept_error : public std::exception
+{
+  virtual const char	*what(void) const throw() { return ("Unexpected error while executing 'accept' function"); }
+};
+class	recv_error : public std::exception
+{
+  virtual const char	*what(void) const throw() { return ("Unexpected error while executing 'recv' function"); }
+};
+
+class select_error : public std::exception
+{
+	virtual const char	*what(void) const throw() { return ("Unexpected error while executing 'select' function"); }
+};
+
+class	invalid_header_error : public std::exception
+{
+  virtual const char	*what(void) const throw() { return ("Invalid Header!!"); }
+};
+class	incorrect_body_length_error : public std::exception
+{
+  virtual const char	*what(void) const throw() { return ("Incorrect Body Length!!"); }
+};
+
+struct fork_error : public std::exception
+{
+  virtual const char	*what(void) const throw() { return ("fork error!!"); }
+};
 
 #endif

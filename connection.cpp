@@ -11,7 +11,7 @@ connection::connection(config &cf, fd_set &rfds) : server_size(0), fd_arr(), rea
 		std::cout << "server " << i << std::endl;
 		//1. 서버 소켓 하나 생성
 		if ((serv_sock = socket(PF_INET, SOCK_STREAM, 0)) == -1)
-			throw (connection::socket_error());
+			throw (socket_error());
 		server_size++;
 		fd_arr.push_back(fd_info(serv_sock, &cf.v_s[i]));
 		//2. socket에 IP, Port 번호 할당
@@ -22,14 +22,14 @@ connection::connection(config &cf, fd_set &rfds) : server_size(0), fd_arr(), rea
 		int port = convert_to_num(cf.v_s[i].v_listen[0], 10);
 		serv_adr.sin_port = htons(port); //일단은 포트 번호 100로 설정
 		if (setsockopt(serv_sock, SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(reuse)) == -1) //바로 주소 재사용가능하도록 설정
-			throw (connection::setsockopt_error());
+			throw (setsockopt_error());
 		if (setsockopt(serv_sock, SOL_SOCKET, SO_REUSEPORT, &reuse, sizeof(reuse)) == -1) //바로 포트 재사용가능하도록 설정
-			throw (connection::setsockopt_error());
+			throw (setsockopt_error());
 		if (bind(serv_sock, reinterpret_cast<struct sockaddr*>(&serv_adr), sizeof(serv_adr)) == -1)
-			throw (connection::bind_error());
+			throw (bind_error());
 		//3. server socket에 클라이언트 접속 요청 대기할 수 있도록 - 일단 10개의 수신 대기열
 		if (listen(serv_sock, 128) == -1)
-			throw (connection::listen_error());
+			throw (listen_error());
 		FD_SET(serv_sock, &read_fds); //read_fds에서 서버 fd 활성화
 		//fcntl(serv_sock, F_SETFL, O_NONBLOCK);
 		//소켓 프로그래밍에서 4.클라이언트 접속 요청 수락하는 부분, 5.클라이언트와 연결된 소켓으로 데이터 송수신하는 부분은 다른 메서드에서
@@ -95,7 +95,7 @@ void					connection::connect_client(int serv_sock)
 
 	//4.클라이언트 접속 요청 수락하는 부분
 	if ((clnt_sock = accept(serv_sock, reinterpret_cast<struct sockaddr*>(&clnt_adr), &adr_sz)) == -1)
-		throw (connection::accept_error());
+		throw (accept_error());
 	std::cout << "connecting: serv - " << serv_sock << ", clnt - " << clnt_sock << "\n";
 	std::cout << "clnt info: IP - " << inet_ntoa(clnt_adr.sin_addr) << ", Port - " << ntohs(clnt_adr.sin_port) << std::endl;
 	/*if (clnt_sock == 7)
@@ -140,7 +140,7 @@ void					connection::get_client_msg(int clnt_sock, request &rq)
 
 	//std::cout << "[get_client_msg]\n";
 	if ((str_len = recv(clnt_sock, buf, BUF_SIZE, 0)) < 0)
-		throw (connection::recv_error());
+		throw (recv_error());
 	buf[str_len] = '\0';
 	/*if (!str_len)
 	{
@@ -291,7 +291,7 @@ bool					connection::is_transfer_encoding_completed(fd_info &clnt_info, request 
 						break ;
 					}
 					else if (length < clnt_length)
-						throw (request::incorrect_body_length_error());
+						throw (incorrect_body_length_error());
 					tmp = next + 1;
 				}
 			}
@@ -328,7 +328,7 @@ bool					connection::is_content_length_completed(fd_info &clnt_info, request &rq
 		if (clnt_length < length)
 			return (false);
 		else if (clnt_length > length)
-			throw (request::incorrect_body_length_error());
+			throw (incorrect_body_length_error());
 	}
 	catch (const std::exception& e)
 	{
@@ -340,11 +340,11 @@ bool					connection::is_content_length_completed(fd_info &clnt_info, request &rq
 int						connection::convert_to_num(std::string str_length, int radix)
 {
 	if (str_length.empty())
-		throw (request::incorrect_body_length_error());
+		throw (incorrect_body_length_error());
 	char	*end;
 	int		length = static_cast<int>(strtol(str_length.c_str(), &end, radix));
 	if (*end || length < 0)
-		throw (request::incorrect_body_length_error());
+		throw (incorrect_body_length_error());
 	return (length);
 }
 

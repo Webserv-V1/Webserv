@@ -12,13 +12,8 @@
 # include <exception>
 # include "parsing.hpp"
 # include "request.hpp"
-
-# define	BUF_SIZE 			100
-# define	RQ_LINE_NOT_PARSED	0
-# define	HEADER_NOT_PARSED	1
-# define	NO_BODY				2
-# define	TRANSFER_ENCODING	3
-# define	CONTENT_LENGTH		4
+# include "error.hpp"
+# include "../default_conf.hpp"
 
 //읽고 쓸 때 체크해야 하는 fd 배열의 집합 - select에서 사용하나 서버 소켓에 대해 해당 read_fd를 활성화해줘야 하기 때문에 connection에서 선언
 class IO_fd_set
@@ -83,48 +78,5 @@ public:
 	int							convert_to_num(std::string str_length, int radix);
 	int							body_length(std::string msg);
 	void						print_client_msg(int clnt_sock);
-
-	class	socket_error : public std::exception
-	{
-		virtual const char	*what(void) const throw()
-		{
-			return ("Unexpected error while executing 'socket' function");
-		}
-	};
-	class	setsockopt_error : public std::exception
-	{
-		virtual const char	*what(void) const throw()
-		{
-			return ("Unexpected error while executing 'setsockopt' function");
-		}
-	};
-	class	bind_error : public std::exception
-	{
-		virtual const char	*what(void) const throw()
-		{
-			return ("Unexpected error while executing 'bind' function");
-		}
-	};
-	class	listen_error : public std::exception
-	{
-		virtual const char	*what(void) const throw()
-		{
-			return ("Unexpected error while executing 'listen' function");
-		}
-	};
-	class	accept_error : public std::exception
-	{
-		virtual const char	*what(void) const throw()
-		{
-			return ("Unexpected error while executing 'accept' function");
-		}
-	};
-	class	recv_error : public std::exception
-	{
-		virtual const char	*what(void) const throw()
-		{
-			return ("Unexpected error while executing 'recv' function");
-		}
-	};
 };
 #endif
