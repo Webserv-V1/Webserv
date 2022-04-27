@@ -229,7 +229,7 @@ bool					request::set_error(request::iterator &it, int err_no)
 	return (true);
 }
 
-int						request::body_length(std::string msg)
+/*int						request::body_length(std::string msg)
 {
 	size_t	newline_num = 0;
 	size_t	last = 0;
@@ -240,4 +240,4 @@ int						request::body_length(std::string msg)
 		last = next + 1;
 	}
 	return (msg.length() + newline_num); //msg의 실제 길이 + \r 개수
-}
+}*/

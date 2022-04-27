@@ -42,8 +42,9 @@ public:
 	std::string					msg; //이 fd가 클라이언트라면 입력받은 문자열을 받아서 나중에 \n 기준으로 split_msg에 추가
 	std::vector<std::string>	split_msg;
 	int							status;
+	int							cn_num;
 
-	fd_info(int f, server *s) : fd(f), server_info(s), tmp(""), msg(""), split_msg(), status(RQ_LINE_NOT_PARSED) {}
+	fd_info(int f, server *s) : fd(f), server_info(s), tmp(""), msg(""), split_msg(), status(RQ_LINE_NOT_PARSED), cn_num(0) {}
 };
 
 class connection
@@ -65,9 +66,11 @@ public:
 	fd_info						&info_of_fd(int fd);
 	void						connect_client(int serv_sock);
 	void						disconnect_client(int clnt_sock);
+	void						check_connection(int clnt_sock, std::string rp);
 	void						get_client_msg(int clnt_sock, request &rq);
 	void						clear_client_msg(int clnt_sock);
 	void						concatenate_client_msg(fd_info &clnt_info, std::string to_append);
+	bool						is_before_body_input(fd_info &clnt_info);
 	bool						is_input_completed(fd_info &clnt_info, request &rq);
 	bool						completed_input(request &rq, request::iterator &it, std::string body, int err_no);
 	request::iterator			parse_rq_line(fd_info &clnt_info, request &rq);
@@ -76,7 +79,8 @@ public:
 	bool						is_transfer_encoding_completed(fd_info &clnt_info, request &rq);
 	bool						is_content_length_completed(fd_info &clnt_info, request &rq);
 	int							convert_to_num(std::string str_length, int radix);
-	int							body_length(std::string msg);
+	std::string					trim_last_cr(std::string msg);
+	std::string					trim_last_crlf(std::string msg, int required_length);
 	void						print_client_msg(int clnt_sock);
 };
 #endif

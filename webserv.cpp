@@ -33,15 +33,12 @@ bool	connect_socket_and_parsing(IO_fd_set *fds, connection *cn, request *rq, std
 		}
 		if (FD_ISSET(it->fd, &((*fds).cpy_write_fds)))
 		{
-			/*std::string	rp = "print done!\n";
-			send(1, rp.c_str(), strlen(rp.c_str()), 0);*/ //여기선 단순히 문자열 출력하는 방법
-
-	//		std::string	rp = "HTTP/1.1 200 OK\r\nConnection: close\r\nContent-Length: 16\r\nContent-type: text/html\r\n\r\n<h1>TESTING</h1>";
 			std::string rp = request_msg;
 			send(it->fd, rp.c_str(), strlen(rp.c_str()), 0); //recv에 맞춰서 write도 send로 변경
 			FD_CLR(it->fd, &((*fds).write_fds));
 			FD_SET(it->fd, &((*fds).read_fds));
 			(*cn).clear_client_msg(it->fd);
+			(*cn).check_connection(it->fd, rp);
 			//(*cn).disconnect_client(it->fd); //출력까지 하고 나서 cn 내부에 아직 남아있는 해당 fd 정보를 삭제
 			break ;
 		}

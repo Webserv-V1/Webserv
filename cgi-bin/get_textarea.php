@@ -9,6 +9,7 @@ $body .= "<style>\n";
 $body .= "html { color-scheme: light dark; }\n";
 $body .= "body { width: 35em; margin: 0 auto;\n";
 $body .= "font-family: Tahoma, Verdana, Arial, sans-serif; }\n";
+$body .= "h1 { color:yellowgreen; }\n";
 $body .= "</style>\n";
 $body .= "</head>\n";
 $body .= "<body>\n";
@@ -21,9 +22,8 @@ else
 	fseek(STDIN, 0, SEEK_SET);
 	$data = fread(STDIN, $_SERVER["CONTENT_LENGTH"]);
 }
-$body .= "<h2>" . $data . "</h2>\n";
 parse_str($data, $res);
-if (strlen($res['textcontent']) == 0)
+if (!isset($res['textcontent']) or strlen($res['textcontent']) == 0)
 	$body .= "<h3>Please leave a comment next time!</h3>\n";
 else
 {

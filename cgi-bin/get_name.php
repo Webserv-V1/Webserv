@@ -9,6 +9,7 @@ $body .= "<style>\n";
 $body .= "html { color-scheme: light dark; }\n";
 $body .= "body { width: 35em; margin: 0 auto;\n";
 $body .= "font-family: Tahoma, Verdana, Arial, sans-serif; }\n";
+$body .= "h1 { color:darksalmon; }\n";
 $body .= "</style>\n";
 $body .= "</head>\n";
 $body .= "<body>\n";
@@ -22,7 +23,7 @@ else
 	$data = fread(STDIN, $_SERVER["CONTENT_LENGTH"]);
 }
 parse_str($data, $res);
-if (strlen($res["first_name"]) == 0)
+if (!isset($res["first_name"]) or strlen($res["first_name"]) == 0)
 	$body .= "<h3>You didn't set the first_name!</h3>\n";
 else
 {
@@ -30,7 +31,7 @@ else
 	$body .= $res["first_name"];
 	$body .= "</h3>\n";
 }
-if (strlen($res["last_name"]) == 0)
+if (!isset($res["last_name"]) or strlen($res["last_name"]) == 0)
 	$body .= "<h3>You didn't set the last_name!</h3>\n";
 else
 {

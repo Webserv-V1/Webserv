@@ -9,6 +9,7 @@ $body .= "<style>\n";
 $body .= "html { color-scheme: light dark; }\n";
 $body .= "body { width: 35em; margin: 0 auto;\n";
 $body .= "font-family: Tahoma, Verdana, Arial, sans-serif; }\n";
+$body .= "h1 { color:darksalmon; }\n";
 $body .= "</style>\n";
 $body .= "</head>\n";
 $body .= "<body>\n";
@@ -22,7 +23,7 @@ else
 	$data = fread(STDIN, $_SERVER["CONTENT_LENGTH"]);
 }
 parse_str($data, $res);
-if (strlen($res["ID"]) == 0)
+if (!isset($res["ID"]) or strlen($res["ID"]) == 0)
 	$body .= "<h3>You didn't set the ID!</h3>\n";
 else
 {
@@ -30,7 +31,7 @@ else
 	$body .= $res["ID"];
 	$body .= "</h3>\n";
 }
-if (strlen($res["PW"]) == 0)
+if (!isset($res["PW"]) or strlen($res["PW"]) == 0)
 	$body .= "<h3>You didn't set the PW!</h3>\n";
 else
 {
@@ -38,22 +39,6 @@ else
 	$body .= $res["PW"];
 	$body .= "</h3>\n";
 }
-/*if (isset($_REQUEST['ID']))
-{
-	$body .= "<p>Your ID is ";
-	$body .= $_REQUEST['ID'];
-	$body .= "</p>\n";
-}
-else
-	$body .= "<p>You didn't set the ID!</p>\n";
-if (isset($_REQUEST['PW']))
-{
-	$body .= "<p>Your password is ";
-	$body .= $_REQUEST['PW'];
-	$body .= "</p>\n";
-}
-else
-	$body .= "<p>You didn't set the password!</p>\n";*/
 
 $body .= "</body>\n";
 $body .= "</html>\n";

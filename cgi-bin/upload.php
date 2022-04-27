@@ -8,6 +8,7 @@ $body .= "<style>\n";
 $body .= "html { color-scheme: light dark; }\n";
 $body .= "body { width: 35em; margin: 0 auto;\n";
 $body .= "font-family: Tahoma, Verdana, Arial, sans-serif; }\n";
+$body .= "h1 { color:mediumslateblue; }\n";
 $body .= "</style>\n";
 $body .= "</head>\n";
 $body .= "<body>\n";

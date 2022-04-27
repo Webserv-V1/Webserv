@@ -16,7 +16,8 @@ CGI_preprocessing::CGI_preprocessing(request &rq, conf_index &cf_i)
 	env["CONTENT_TYPE"] = rq.corresponding_header_value(it, "CONTENT-TYPE");
 	if (env["CONTENT_TYPE"].empty())
 		env["CONTENT_TYPE"] = "text/html";
-	env["CONTENT_LENGTH"] = std::to_string(rq.body_length(body));
+	//env["CONTENT_LENGTH"] = std::to_string(rq.body_length(body));
+	env["CONTENT_LENGTH"] = std::to_string(body.length());
 	env["QUERY_STRING"] = cf_i.query_string; //나중에 쿼리 스트링으로 수정
 	env["REMOTE_ADDR"] = rq.corresponding_header_value(it, "HOST");
 	env["SERVER_NAME"] = it->first.server_info->v_listen[1];

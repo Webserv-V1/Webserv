@@ -9,6 +9,7 @@ $body .= "<style>\n";
 $body .= "html { color-scheme: light dark; }\n";
 $body .= "body { width: 35em; margin: 0 auto;\n";
 $body .= "font-family: Tahoma, Verdana, Arial, sans-serif; }\n";
+$body .= "h1 { color:yellowgreen; }\n";
 $body .= "</style>\n";
 $body .= "</head>\n";
 $body .= "<body>\n";
@@ -21,24 +22,29 @@ else
 	fseek(STDIN, 0, SEEK_SET);
 	$data = fread(STDIN, $_SERVER["CONTENT_LENGTH"]);
 }
-$body .= "<h2>" . $data . "</h2>\n";
 parse_str($data, $res);
-$body .= "<h2>Result for 'would you rather' question</h2>\n";
-if (strcmp($res["first"], "1-1") == 0)
+$body .= "<h2>[Result for 'would you rather' question]</h2>\n";
+if (!isset($res["first"]))
+	$body .= "<h3>You didn't answer the first question.</h3>\n";
+else if (strcmp($res["first"], "1-1") == 0)
 	$body .= "<h3>You selected 'Have more time' in first question!</h3>\n";
 else
 	$body .= "<h3>You selected 'Have more money' in first question!</h3>\n";
-if (strcmp($res["second"], "2-1") == 0)
+if (!isset($res["second"]))
+	$body .= "<h3>You didn't answer the second question.</h3>\n";
+else if (strcmp($res["second"], "2-1") == 0)
 	$body .= "<h3>You selected 'Have many good friends' in second question!</h3>\n";
 else
 	$body .= "<h3>You selected 'Have one very best friend' in second question!</h3>\n";
-if (strcmp($res["third"], "3-1") == 0)
+if (!isset($res["third"]))
+	$body .= "<h3>You didn't answer the third question.</h3>\n";
+else if (strcmp($res["third"], "3-1") == 0)
 	$body .= "<h3>You selected 'Hear the good news first' in third question!</h3>\n";
 else
 	$body .= "<h3>You selected 'Hear the bad news first' in third question!</h3>\n";
 $body .= "<hr>\n";
 
-$body .= "<h2>Color of your choice</h2>\n";
+$body .= "<h2>[Color of your choice]</h2>\n";
 $color = "";
 if (isset($res['red']))
 	$color .= "red ";
@@ -58,9 +64,14 @@ else
 	$body .= ("<h3>" . $color . "</h3>\n");
 
 $body .= "<hr>\n";
-$body .= "<h3>You gave me ";
-$body .= $res['dropdown'];
-$body .= "stars</h3>\n";
+if (!isset($res['dropdown']))
+	$body .= "<h3>You didn't give a rating</h3>\n";
+else
+{
+	$body .= "<h3>You gave me ";
+	$body .= $res['dropdown'];
+	$body .= " stars</h3>\n";
+}
 
 $body .= "</body>\n";
 $body .= "</html>\n";

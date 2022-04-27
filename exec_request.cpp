@@ -604,7 +604,7 @@ void make_request(int &state_code, std::string &request_msg, conf_index &cf_i, s
 
 void    exec_request(config &cf, fd_set &write_fds, request *rq, std::string &request_msg, std::map<int, std::string> &m_state_code, std::map<std::string, std::string > &m_mt)
 {
-	while (!rq->empty())
+	if (!rq->empty())
 	{
 		//std::cout << "hi2~ " <<std::endl;
 		conf_index	cf_i;
