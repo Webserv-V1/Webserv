@@ -1,5 +1,6 @@
 #include "./include/cgi_preprocessing.hpp"
 #include "./include/exec_request.hpp"
+#include <cstdio>
 class CGI_preprocessing;
 std::string make_GMT_time()
 {
@@ -47,6 +48,9 @@ void exec_method(config &cf, request::iterator rq_iter, conf_index &cf_i)
 		}
 		else if(rq_iter->first.method == "DELETE")
 		{
+			if(cf_i.url_folder_flag == true)
+				throw 409;
+			throw 204;
 		}
 		else
 		{
@@ -55,7 +59,8 @@ void exec_method(config &cf, request::iterator rq_iter, conf_index &cf_i)
 	}
 	else
 	{
-		throw 403; //에메함 : conf에 접근 권한 없는 요청이라 403 뛰움. 클라이언트는 콘텐츠에 접근할 권리를 가지고 있지 않습니다.
+		std::cout << "################################# durl 1 " << std::endl;
+		throw 405; //에메함 : 메소드요청시 불가능한 메소드라. 이렇게함!
 	}
 }
 
@@ -217,7 +222,10 @@ std::string confirmed_root_path(config &cf, conf_index &cf_i)
 			return "location is file";
 		}
 		else //( s.st_mode & S_IFDIR )
+		{
+			cf_i.url_folder_flag = true;
 			return "location is folder";
+		}
 	}
 	else
 		throw 404; // 확인 : root + url 남은 부분의 경로를 찾을수 없으면 파일을 못찾음. 404에러
@@ -229,11 +237,13 @@ int check_filesize(std::ifstream &readFile, conf_index &cf_i, config &cf)
 	begin = readFile.tellg();
 	readFile.seekg (0, std::ios::end);
 	end = readFile.tellg();
-	readFile.close();
-	if(cf_i.location != -1 && cf.v_s[cf_i.server].v_l[cf_i.location].m_location.find("client_max_body_size") != cf.v_s[cf_i.server].v_l[cf_i.location].m_location.end())
+//	readFile.close();
+	if(cf_i.location != -1 && cf.v_s[cf_i.server].v_l[cf_i.location].m_location.find("server_max_body_size") != cf.v_s[cf_i.server].v_l[cf_i.location].m_location.end())
 	{
-		if(stol(cf.v_s[cf_i.server].v_l[cf_i.location].m_location["client_max_body_size"][0]) * 1048576 < end - begin)
-		return 413;
+		if(stol(cf.v_s[cf_i.server].v_l[cf_i.location].m_location["server_max_body_size"][0]) * 1048576 < end - begin)
+		{
+			return 413;
+		}
 	}		
 	//std::cout << "###########size is: " << (end-begin) << " bytes.\n";
 	return 0;
@@ -268,11 +278,10 @@ void confirmed_file_path_and_file_type(config &cf, conf_index &cf_i)
 		std::ifstream readFile( cf_i.file_path.c_str());
 		if (readFile.is_open())
 		{
-			//~~CGI~~~//
-
 			if(413 == check_filesize(readFile, cf_i, cf))
 			{
 				readFile.close();
+				std::cout << " 가지마.. " << std::endl;
 				throw 413; //확인 : 요청한 파일을 열어보고 사이즈가 더 크면 413 에러
 			}
 			readFile.close(); // 맞겠지? 
@@ -283,7 +292,7 @@ void confirmed_file_path_and_file_type(config &cf, conf_index &cf_i)
 			if(cf.v_s[cf_i.server].v_l[cf_i.location].m_location.find("auto_index") != cf.v_s[cf_i.server].v_l[cf_i.location].m_location.end() && cf.v_s[cf_i.server].v_l[cf_i.location].m_location["auto_index"][0] == "on")
 				cf_i.autoindex_flag = 1;
 			else 
-				throw 404; //확인 : 원하는 경로에 파일 없으니까 404에러!
+				throw 403; //확인 : url이 폴더일떄만이라 파일이 없어도 403에러!
 		}
 	}
 }
@@ -315,6 +324,8 @@ bool check_cgi(std::string file_path)
 
 void exec_header(config &cf, request::value_type &fd_data, conf_index &cf_i)
 {
+	for(std::map<std::string, std::string>::iterator iii = fd_data.second.begin(); iii != fd_data.second.end(); iii++)
+		std::cout << "zz : " << iii->first << std::endl;
 	if(fd_data.second.find("host") !=  fd_data.second.end())
 	{
 		when_host_is_localhost(fd_data);
@@ -329,6 +340,22 @@ void exec_header(config &cf, request::value_type &fd_data, conf_index &cf_i)
 		if(fd_data.second["connection"] == "close")
 			cf_i.Connection = "close";
 	}
+	if(fd_data.second.find("content-length") != fd_data.second.end())
+	{
+		//check_client_max_body();
+		//std::cout <<"가즈아!!! : " << std::endl;
+		if(cf.v_s[cf_i.server].v_l[cf_i.location].m_location.find("client_max_body_size") != cf.v_s[cf_i.server].v_l[cf_i.location].m_location.end())
+		{
+			//std::cout <<"가즈아!!! : " << stol(cf.v_s[cf_i.server].v_l[cf_i.location].m_location["client_max_body_size"][0]) * 1048576 << std::endl;
+			if(stol(cf.v_s[cf_i.server].v_l[cf_i.location].m_location["client_max_body_size"][0]) * 1048576 < stol(fd_data.second["connection"]))
+				throw 413;
+		}
+		else {
+			if(1048576 < stol(fd_data.second["connection"]))
+				throw 413; //conf로 설정한 client_body없으면 1M까지!
+		}
+	}		
+	
 	find_cf_location_i(cf, fd_data, cf_i);
 	exec_redirection(cf ,cf_i);
 	if(confirmed_root_path(cf, cf_i) == "location is folder")
@@ -350,7 +377,10 @@ void make_folder_list(std::string &path_list, std::string path)
 	struct stat buf;
 
 	if( (dir = opendir(path.c_str())) == NULL)
+	{
+		std::cout << "####222222222 : " <<path << " #### "<< std::endl;
 		throw root_and_location_error();
+	}
 	while( (entry = readdir(dir)) != NULL)
 	{
 		std::string s_tmp (entry->d_name);
@@ -391,8 +421,8 @@ void input_autoindex_data(conf_index &cf_i, std::string &file_data, std::string 
 {
 	std::string find_str1 = "$1";
 	std::string find_str2 = "$2";
-	file_data.replace(file_data.find(find_str1), find_str1.size(), cf_i.root_path + cf_i.request_url_remaining);
-	file_data.replace(file_data.find(find_str1), find_str1.size(), cf_i.root_path + cf_i.request_url_remaining);
+	file_data.replace(file_data.find(find_str1), find_str1.size(), cf_i.root_path + "/" + cf_i.request_url_remaining);
+	file_data.replace(file_data.find(find_str1), find_str1.size(), cf_i.root_path + "/" + cf_i.request_url_remaining);
 	file_data.replace(file_data.find(find_str2), find_str2.size(), path_list);
 }
 
@@ -450,7 +480,8 @@ void exec_autoindex(int &state_code, conf_index &cf_i, std::string &file_data)
 		if(cf_i.autoindex_flag == 1) // cf_i.root_path + cf_i.request_url_remaining 이 폴더 일때만 탐.. 
 		{
 			std::string path_list = "";
-			make_folder_list(path_list, cf_i.root_path + cf_i.request_url_remaining);
+			std::cout << "#### " << state_code  << " #### "<< std::endl;
+			make_folder_list(path_list, cf_i.root_path + "/" + cf_i.request_url_remaining);
 			input_autoindex_data(cf_i, file_data, path_list);
 		}
 	}
@@ -467,7 +498,7 @@ void make_request_msg(int &state_code, std::string &request_msg, conf_index &cf_
 //		// 여기서 cGI 만든이유. autoindex나 errorpage 또한 php파일일 경우 적용해주기 위함이다. 
 //		// 문제는 cgi에서  500 에러같은게 터지면 대응하기 어렵다..
 //		//cgi 실행후, 상태코드가. 에러면 다시 에러처리해주어야한다!!!! 즐겁다 즐거워
-	if(cf_i.cgi_flag == false)	
+	if(cf_i.cgi_flag == false && state_code != 204)	
 	{
 		open_file_data(file_data, c_open_file);
 		exec_autoindex(state_code, cf_i, file_data);
@@ -477,6 +508,14 @@ void make_request_msg(int &state_code, std::string &request_msg, conf_index &cf_
 			request_msg += "Content-type: " + cf_i.file_type + "\r\n";
 		else 
 			request_msg += (std::string)"Content-type: " + "application/octet-stream" + "\r\n";
+	}
+	else if (cf_i.cgi_flag == false && state_code == 204)
+	{
+		int nResult = remove( cf_i.file_path.c_str() );
+		if( nResult == 0 )
+		{
+			std::cout << "DELETE file : " << cf_i.file_path << std::endl;
+		}
 	}
 
 	request_msg += "Connection: " + cf_i.Connection + "\r\n";
@@ -507,7 +546,9 @@ void exec_error_page(conf_index &cf_i, config &cf, int &error_code, std::vector<
 	{
 		if(stoi(v_error_page[i]) == error_code)
 		{
-			readFile.open(cf_i.root_path + cf_i.request_url_remaining + v_error_page[v_error_page.size() - 1]);
+			//std::cout << " 내가봤을떄 여기다 200 프로 : " << cf_i.root_path + cf_i.request_url_remaining + v_error_page[v_error_page.size() - 1] << std::endl;
+			//readFile.open(cf_i.root_path + cf_i.request_url_remaining + v_error_page[v_error_page.size() - 1]);
+			readFile.open((std::string)DEFAULT_HTML_PATH + "/"  + v_error_page[v_error_page.size() - 1]);
 			//std::cout << cf_i.root_path + cf_i.request_url_remaining + v_error_page[v_error_page.size() - 1]<< std::endl;
 			if (readFile.is_open())
 			{
@@ -519,7 +560,8 @@ void exec_error_page(conf_index &cf_i, config &cf, int &error_code, std::vector<
 				else
 				{
 					error_code = -900;
-					cf_i.file_path = cf_i.root_path + cf_i.request_url_remaining + v_error_page[v_error_page.size() - 1];
+					cf_i.file_path = (std::string)DEFAULT_HTML_PATH + "/"  + v_error_page[v_error_page.size() - 1];
+	  				//cf_i.file_path = cf_i.root_path + cf_i.request_url_remaining + v_error_page[v_error_page.size() - 1];
 				}
 				readFile.close();
 			}
@@ -587,14 +629,15 @@ void make_request(int &state_code, std::string &request_msg, conf_index &cf_i, s
 		{
 			cf_i.cgi_flag = true;
 			CGI_preprocessing cgi((*rq), cf_i);
-			std::cout << " ############# exec_cgi ############## " << std::endl;
-			std::cout << cgi.exec_CGI() << std::endl;
-			std::cout << " ############# exec_cgi ############## " << std::endl;
+//			std::cout << " ############# exec_cgi ############## " << std::endl;
+//			std::cout << cgi.exec_CGI() << std::endl;
+//			std::cout << " ############# exec_cgi ############## " << std::endl;
 			CGI_header_and_body = check_firstline (cgi.exec_CGI(), state_code);
 		}
 		request_msg = (std::string)"HTTP/1.1 " + std::to_string(state_code) + " " + m_state_code[state_code] + "\r\n";
 		if(cf_i.autoindex_flag != 1)
 			error_page(state_code, cf_i, cf, request_msg, m_state_code);
+
 		make_request_msg(state_code, request_msg, cf_i, m_mt, CGI_header_and_body);
 	}
 }

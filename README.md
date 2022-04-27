@@ -51,7 +51,7 @@ inet_addr, setsockopt, getsockname, fcntl.
 19. 당신은 다른 웹 서버를 실행할 수 없습니다 ... (You can’t execve another webserver...무슨말..) 🚛
 20. 당신의 프로그램은 argument경로나, default경로에 config file을 가진다. 😔
 21. config file을 읽기 전에 poll(또는 이와 동등한 것)을 사용할 필요가 없습니다. 🚛
-22. 완전히 **정적인 웹사이트**를 제공할 수 있어야 합니다. (You should be able to serve a fully static website.) 😔
+22. 완전히 **정적인 웹사이트**를 제공할 수 있어야 합니다. (You should be able to serve a fully static website.) 🚛
 23. 클라이언트가 파일을 업로드 할 수 있어야한다. 👹
 24. HTTP 응답 [status codes](https://ko.wikipedia.org/wiki/HTTP_%EC%83%81%ED%83%9C_%EC%BD%94%EB%93%9C) 는 정확해야 합니다. 👹
 25. 최소한 **GET, POST 및 DELETE** 메소드 필요합니다. 🚛
@@ -70,16 +70,16 @@ inet_addr, setsockopt, getsockname, fcntl.
 
 * 각 서버의 포트나 호스트를 선택하세요. 🚛
 * server_names를 설정해도 되고 안 해도 됩니다.🚛
-* host:port의 첫 번째 서버가 이 host:port의 디폴트 경로가 될 것입니다. (다른 어떤 서버에 속하지 않을 경우 이 서버가 응답) 😔👹
+* host:port의 첫 번째 서버가 이 host:port의 디폴트 경로가 될 것입니다. (다른 어떤 서버에 속하지 않을 경우 이 서버가 응답) 🚛
 * 디폴트 에러 페이지를 설정하세요. 🚛
-* 클라이언트의 본문(body) 사이즈를 설정하세요. 😔👹
+* 클라이언트의 본문(body) 사이즈를 설정하세요. 😔
 * 다음과 같은 규칙을 따라 하나 혹은 여러 개의 경로(route)를 설정하세요. (경로는 regexp를 사용하지 않음)
 	* 경로에서 허용되는 HTTP 메소드의 리스트를 정의 🚛
 	* HTTP redirection을 정의 🚛
 	* 파일을 찾아야 하는 디렉터리 혹은 파일을 정의 🚛
 		* 예를 들어, url "/kapouet"가 "/tmp/www"로 root되어 있다면 url "/kapouet/pouic/toto/pouet"는 "/tmp/www/pouic/toto/pouet"을 의미합니다.
 	* 디렉터리 리스팅을 on/off 할 수 있어야 합니다. 🚛
-	* 요청이 디렉터리일 때 응답해줄 디폴트 파일이 있어야 합니다. 🚛😔
+	* 요청이 디렉터리일 때 응답해줄 디폴트 파일이 있어야 합니다. 🚛
 	* 특정 파일 확장자에 대해 CGI를 실행 (ex - .php)  😔👹
 		* CGI를 직접 호출하지 않기 때문에 전체 경로를 PATH_INFO로 사용
 		* chuncked request의 경우 서버에서 이어붙이는 작업을 실행해야 하고 이때 CGI는EOF를 본문(body)의 끝으로 인식합니다.
