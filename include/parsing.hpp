@@ -77,7 +77,7 @@ public :
 		std::string s_invalid_key[] = {"location", "listen", "error_page"};
 		std::string l_invalid_key[] = { "error_page", "allow_methods", \
 				"client_max_body_size", "root", "index", "auto_index", \
-				"cgi_extension", "auth_key", "client_body_buffer_size", "upload_path", "return"};
+				"server_max_body_size", "auth_key", "client_body_buffer_size", "upload_path", "return"};
 
 	v_server_invalid_key.insert(v_server_invalid_key.begin(), s_invalid_key, s_invalid_key + sizeof(s_invalid_key) / sizeof(std::string));
 	v_location_invalid_key.insert(v_location_invalid_key.begin(), l_invalid_key, l_invalid_key + sizeof(l_invalid_key) / sizeof(std::string));
