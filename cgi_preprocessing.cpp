@@ -16,8 +16,11 @@ CGI_preprocessing::CGI_preprocessing(request &rq, conf_index &cf_i)
 	env["CONTENT_TYPE"] = rq.corresponding_header_value(it, "CONTENT-TYPE");
 	if (env["CONTENT_TYPE"].empty())
 		env["CONTENT_TYPE"] = "text/html";
-	//env["CONTENT_LENGTH"] = std::to_string(rq.body_length(body));
-	env["CONTENT_LENGTH"] = std::to_string(body.length());
+	std::stringstream stream;
+	stream << body.length();
+	std::string len_to_string;
+	stream >> len_to_string;
+	env["CONTENT_LENGTH"] = len_to_string;
 	env["QUERY_STRING"] = cf_i.query_string; //나중에 쿼리 스트링으로 수정
 	env["REMOTE_ADDR"] = rq.corresponding_header_value(it, "HOST");
 	env["SERVER_NAME"] = it->first.server_info->v_listen[1];
@@ -38,6 +41,7 @@ CGI_preprocessing::~CGI_preprocessing()
 std::string		CGI_preprocessing::exec_CGI(void)
 {
 	char		**env_arr;
+	char		**argv;
 	pid_t		pid;
 	std::string	res = "";
 	try
@@ -51,6 +55,10 @@ std::string		CGI_preprocessing::exec_CGI(void)
 			strcpy(env_arr[i++], tmp.c_str());
 		}
 		env_arr[i] = 0;
+		argv = new char*[2];
+		argv[0] = new char[env["PATH_INFO"].length() + 1];
+		strcpy(argv[0], env["PATH_INFO"].c_str());
+		argv[1] = 0;
 
 		/*std::cout << "checking env_arr\n";
 		for (int i = 0; env_arr[i]; i++)
@@ -75,7 +83,7 @@ std::string		CGI_preprocessing::exec_CGI(void)
 		{
 			dup2(fdin, STDIN_FILENO);
 			dup2(fdout, STDOUT_FILENO);
-			execve(env["PATH_INFO"].c_str(), 0, env_arr);
+			execve(env["PATH_INFO"].c_str(), argv, env_arr);
 			write(STDOUT_FILENO, "Status: 500 Internal Server Error\r\n\r\n", 37);
 			exit(1);
 		}
@@ -98,6 +106,8 @@ std::string		CGI_preprocessing::exec_CGI(void)
 		for (int i = 0; env_arr[i]; i++)
 			delete[] env_arr[i];
 		delete[] env_arr;
+		delete[] argv[0];
+		delete[] argv;
 		fclose(fin);
 		fclose(fout);
 	}

@@ -10,5 +10,6 @@
 #define	NO_BODY				2
 #define	TRANSFER_ENCODING	3
 #define	CONTENT_LENGTH		4
+#define MULTIPART			5
 
 #endif

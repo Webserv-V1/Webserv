@@ -5,6 +5,7 @@
 # include <map>
 # include <unistd.h>
 # include <cstdio>
+# include <sstream>
 # include "request.hpp"
 # include "parsing.hpp"
 # include "exec_request.hpp"

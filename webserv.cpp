@@ -18,7 +18,6 @@ bool	connect_socket_and_parsing(IO_fd_set *fds, connection *cn, request *rq, std
 		throw (select_error());
 	else if (!fd_num)
 		return true;
-	//클라이언트 ++
 	for (connection::iterator it = (*cn).fd_arr_begin(); it != (*cn).fd_arr_end(); ++it)
 	{
 		if (FD_ISSET(it->fd, &((*fds).cpy_read_fds)))
@@ -29,7 +28,10 @@ bool	connect_socket_and_parsing(IO_fd_set *fds, connection *cn, request *rq, std
 				break ;
 			}
 			else
-				(*cn).get_client_msg(it->fd, (*rq));
+			{
+				if (!(*cn).get_client_msg(it->fd, (*rq)))
+					break ;
+			}
 		}
 		if (FD_ISSET(it->fd, &((*fds).cpy_write_fds)))
 		{
@@ -38,9 +40,9 @@ bool	connect_socket_and_parsing(IO_fd_set *fds, connection *cn, request *rq, std
 			FD_CLR(it->fd, &((*fds).write_fds));
 			FD_SET(it->fd, &((*fds).read_fds));
 			(*cn).clear_client_msg(it->fd);
-			(*cn).check_connection(it->fd, rp);
+			if (!(*cn).check_connection(it->fd, rp))
+				break ;
 			//(*cn).disconnect_client(it->fd); //출력까지 하고 나서 cn 내부에 아직 남아있는 해당 fd 정보를 삭제
-			break ;
 		}
 	}
 	return false;

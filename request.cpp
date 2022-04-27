@@ -82,7 +82,8 @@ request::iterator		request::insert_rq_line(int clnt_fd, server *server_info, std
 	size_t					next, last = 0;
 	for (int i = 0; i < 3; i++)
 	{
-		next = rq_line.find(" ", last);
+		if ((next = rq_line.find(" ", last)) == std::string::npos && i != 2)
+			break ;
 		if (!i)
 			first.method = rq_line.substr(last, next - last);
 		else if (i == 1)
