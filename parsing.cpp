@@ -353,14 +353,17 @@ void check_l_server_max_body_size(std::string server_or_client, config &cf, int 
 	{
 		if(cf.v_s[i].v_l[j].m_location[server_or_client].size() != 1)
 			 throw config_error_client_max();
-		if(stol(cf.v_s[i].v_l[j].m_location[server_or_client][0]) > 2048) // 1기가 넘어가면 에러
-			 throw config_error_client_max();
 		for(int zz = 0; zz < (int)cf.v_s[i].v_l[j].m_location[server_or_client][0].size(); zz++)
 		{
 			if ((int)cf.v_s[i].v_l[j].m_location[server_or_client][0].size() - 1 != zz && !isdigit(cf.v_s[i].v_l[j].m_location[server_or_client][0][zz]))
 				throw config_error_client_max();
-			if ((int)cf.v_s[i].v_l[j].m_location[server_or_client][0].size() - 1 == zz && !isdigit(cf.v_s[i].v_l[j].m_location[server_or_client][0][zz]) && cf.v_s[i].v_l[j].m_location[server_or_client][0][zz] != 'M')
-				throw config_error_client_max();
+			if ((int)cf.v_s[i].v_l[j].m_location[server_or_client][0].size() - 1 == zz)
+			{
+				if(!isdigit(cf.v_s[i].v_l[j].m_location[server_or_client][0][zz]) && cf.v_s[i].v_l[j].m_location[server_or_client][0][zz] != 'M')
+					throw config_error_client_max();
+				else if (cf.v_s[i].v_l[j].m_location[server_or_client][0][zz] != 'M' && stol(cf.v_s[i].v_l[j].m_location[server_or_client][0]) > 2048) // 1기가 넘어가면 에러
+					throw config_error_client_max(); //M일때 최대 2048M까지 받음 이유. int 범위..
+			}
 		}
 	}
 }

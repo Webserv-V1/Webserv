@@ -59,7 +59,7 @@ void exec_method(config &cf, request::iterator rq_iter, conf_index &cf_i)
 	}
 	else
 	{
-		std::cout << "################################# durl 1 " << std::endl;
+		//std::cout << "################################# durl 1 " << std::endl;
 		throw 405; //에메함 : 메소드요청시 불가능한 메소드라. 이렇게함!
 	}
 }
@@ -240,10 +240,11 @@ int check_filesize(std::ifstream &readFile, conf_index &cf_i, config &cf)
 //	readFile.close();
 	if(cf_i.location != -1 && cf.v_s[cf_i.server].v_l[cf_i.location].m_location.find("server_max_body_size") != cf.v_s[cf_i.server].v_l[cf_i.location].m_location.end())
 	{
-		if(stol(cf.v_s[cf_i.server].v_l[cf_i.location].m_location["server_max_body_size"][0]) * 1048576 < end - begin)
-		{
+		size_t s_size = cf.v_s[cf_i.server].v_l[cf_i.location].m_location["server_max_body_size"][0].size();
+		if(cf.v_s[cf_i.server].v_l[cf_i.location].m_location["server_max_body_size"][0][s_size - 1] == 'M' &&  stol(cf.v_s[cf_i.server].v_l[cf_i.location].m_location["server_max_body_size"][0]) * 1048576 < end - begin)
 			return 413;
-		}
+		else if(cf.v_s[cf_i.server].v_l[cf_i.location].m_location["server_max_body_size"][0][s_size - 1] != 'M' &&  stol(cf.v_s[cf_i.server].v_l[cf_i.location].m_location["server_max_body_size"][0]) < end - begin)
+			return 413;
 	}		
 	//std::cout << "###########size is: " << (end-begin) << " bytes.\n";
 	return 0;
@@ -347,7 +348,10 @@ void exec_header(config &cf, request::value_type &fd_data, conf_index &cf_i)
 		if(cf.v_s[cf_i.server].v_l[cf_i.location].m_location.find("client_max_body_size") != cf.v_s[cf_i.server].v_l[cf_i.location].m_location.end())
 		{
 			//std::cout <<"가즈아!!! : " << stol(cf.v_s[cf_i.server].v_l[cf_i.location].m_location["client_max_body_size"][0]) * 1048576 << std::endl;
-			if(stol(cf.v_s[cf_i.server].v_l[cf_i.location].m_location["client_max_body_size"][0]) * 1048576 < stol(fd_data.second["connection"]))
+			size_t s_size = cf.v_s[cf_i.server].v_l[cf_i.location].m_location["client_max_body_size"][0].size();
+			if(cf.v_s[cf_i.server].v_l[cf_i.location].m_location["client_max_body_size"][0][s_size - 1] == 'M' && stol(cf.v_s[cf_i.server].v_l[cf_i.location].m_location["client_max_body_size"][0]) * 1048576 < stol(fd_data.second["connection"]))
+				throw 413;
+			else if (cf.v_s[cf_i.server].v_l[cf_i.location].m_location["client_max_body_size"][0][s_size - 1] != 'M' && stol(cf.v_s[cf_i.server].v_l[cf_i.location].m_location["client_max_body_size"][0]) < stol(fd_data.second["connection"]))
 				throw 413;
 		}
 		else {
