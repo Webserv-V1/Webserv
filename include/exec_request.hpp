@@ -30,6 +30,7 @@ class conf_index {
 		int location;
 		bool cgi_flag;
 		bool autoindex_flag;
+		bool url_folder_flag;
 
 		std::string Connection;
 		std::string file_type;
@@ -47,7 +48,7 @@ class conf_index {
 		location = -1;
 		cgi_flag = false;
 		autoindex_flag = false;
-
+		url_folder_flag = false;
 		root_path = "";
 		location_path = "";
 		file_type = "";

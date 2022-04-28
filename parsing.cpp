@@ -347,19 +347,19 @@ void check_l_error_page(config &cf, int &i, int &j)
 	}
 }
 
-void check_l_client_max_body_size(config &cf, int &i, int &j)
+void check_l_server_max_body_size(std::string server_or_client, config &cf, int &i, int &j)
 {
-	if(cf.v_s[i].v_l[j].m_location.find("client_max_body_size") != cf.v_s[i].v_l[j].m_location.end())
+	if(cf.v_s[i].v_l[j].m_location.find(server_or_client) != cf.v_s[i].v_l[j].m_location.end())
 	{
-		if(cf.v_s[i].v_l[j].m_location["client_max_body_size"].size() != 1)
+		if(cf.v_s[i].v_l[j].m_location[server_or_client].size() != 1)
 			 throw config_error_client_max();
-		if(stol(cf.v_s[i].v_l[j].m_location["client_max_body_size"][0]) > 2048) // 1기가 넘어가면 에러
+		if(stol(cf.v_s[i].v_l[j].m_location[server_or_client][0]) > 2048) // 1기가 넘어가면 에러
 			 throw config_error_client_max();
-		for(int zz = 0; zz < (int)cf.v_s[i].v_l[j].m_location["client_max_body_size"][0].size(); zz++)
+		for(int zz = 0; zz < (int)cf.v_s[i].v_l[j].m_location[server_or_client][0].size(); zz++)
 		{
-			if ((int)cf.v_s[i].v_l[j].m_location["client_max_body_size"][0].size() - 1 != zz && !isdigit(cf.v_s[i].v_l[j].m_location["client_max_body_size"][0][zz]))
+			if ((int)cf.v_s[i].v_l[j].m_location[server_or_client][0].size() - 1 != zz && !isdigit(cf.v_s[i].v_l[j].m_location[server_or_client][0][zz]))
 				throw config_error_client_max();
-			if ((int)cf.v_s[i].v_l[j].m_location["client_max_body_size"][0].size() - 1 == zz && !isdigit(cf.v_s[i].v_l[j].m_location["client_max_body_size"][0][zz]) && cf.v_s[i].v_l[j].m_location["client_max_body_size"][0][zz] != 'M')
+			if ((int)cf.v_s[i].v_l[j].m_location[server_or_client][0].size() - 1 == zz && !isdigit(cf.v_s[i].v_l[j].m_location[server_or_client][0][zz]) && cf.v_s[i].v_l[j].m_location[server_or_client][0][zz] != 'M')
 				throw config_error_client_max();
 		}
 	}
@@ -381,7 +381,8 @@ void location_check(config &cf, int &i)
 	{
 		check_l_root(cf, i, j);
 		check_l_error_page(cf, i, j);
-		check_l_client_max_body_size(cf, i, j);
+		check_l_server_max_body_size("server_max_body_size", cf, i, j);
+		check_l_server_max_body_size("client_max_body_size", cf, i, j);
 		check_l_return(cf, i, j);
 	}
 }

@@ -1,5 +1,6 @@
 CC = clang++
 CFLAGS = -Wall -Wextra -Werror -std=c++98
+#-fsanitize=address
 #CFLAGS = -std=c++98
 
 NAME = webserv
