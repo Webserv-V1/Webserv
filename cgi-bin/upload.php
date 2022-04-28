@@ -1,3 +1,5 @@
+#!/usr/bin/php
+
 <?php
 $body = "";
 $body .= "<!DOCTYPE html>\n";
