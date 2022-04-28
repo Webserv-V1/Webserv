@@ -159,7 +159,7 @@ bool					connection::get_client_msg(int clnt_sock, request &rq)
 		return (false);
 	}
 	buf[str_len] = '\0';
-	//std::cout << "buf: " << buf << std::endl;
+	std::cout << "buf: " << buf << std::endl;
 	//rq.print_tmp();
 	fd_info &clnt_info = info_of_fd(clnt_sock);
 	concatenate_client_msg(clnt_info, buf); //해당 클라이언트에 문자열 이어서 저장

@@ -323,10 +323,29 @@ bool check_cgi(std::string file_path)
 	return 0;
 }
 
+void check_conten_length(config &cf, request::value_type &fd_data, conf_index &cf_i ) 
+{
+	if(fd_data.second.find("content-length") != fd_data.second.end())
+	{
+		//check_client_max_body();
+		//std::cout <<"가즈아!!! : " << std::endl;
+		if((cf_i.location != -1 && cf_i.server != -1) && cf.v_s[cf_i.server].v_l[cf_i.location].m_location.find("client_max_body_size") != cf.v_s[cf_i.server].v_l[cf_i.location].m_location.end())
+		{
+			//std::cout <<"가즈아!!! : " << stol(cf.v_s[cf_i.server].v_l[cf_i.location].m_location["client_max_body_size"][0]) * 1048576 << std::endl;
+			size_t s_size = cf.v_s[cf_i.server].v_l[cf_i.location].m_location["client_max_body_size"][0].size();
+			if(cf.v_s[cf_i.server].v_l[cf_i.location].m_location["client_max_body_size"][0][s_size - 1] == 'M' && stol(cf.v_s[cf_i.server].v_l[cf_i.location].m_location["client_max_body_size"][0]) * 1048576 < stol(fd_data.second["content-length"]))
+				throw 413;
+			else if (cf.v_s[cf_i.server].v_l[cf_i.location].m_location["client_max_body_size"][0][s_size - 1] != 'M' && stol(cf.v_s[cf_i.server].v_l[cf_i.location].m_location["client_max_body_size"][0]) < stol(fd_data.second["content-length"]))
+				throw 413;
+		}
+		else {
+			if(1048576 < stol(fd_data.second["content-length"]))
+				throw 413; //conf로 설정한 client_body없으면 1M까지!
+		}
+	}	
+}
 void exec_header(config &cf, request::value_type &fd_data, conf_index &cf_i)
 {
-	for(std::map<std::string, std::string>::iterator iii = fd_data.second.begin(); iii != fd_data.second.end(); iii++)
-		std::cout << "zz : " << iii->first << std::endl;
 	if(fd_data.second.find("host") !=  fd_data.second.end())
 	{
 		when_host_is_localhost(fd_data);
@@ -341,26 +360,9 @@ void exec_header(config &cf, request::value_type &fd_data, conf_index &cf_i)
 		if(fd_data.second["connection"] == "close")
 			cf_i.Connection = "close";
 	}
-	if(fd_data.second.find("content-length") != fd_data.second.end())
-	{
-		//check_client_max_body();
-		//std::cout <<"가즈아!!! : " << std::endl;
-		if(cf.v_s[cf_i.server].v_l[cf_i.location].m_location.find("client_max_body_size") != cf.v_s[cf_i.server].v_l[cf_i.location].m_location.end())
-		{
-			//std::cout <<"가즈아!!! : " << stol(cf.v_s[cf_i.server].v_l[cf_i.location].m_location["client_max_body_size"][0]) * 1048576 << std::endl;
-			size_t s_size = cf.v_s[cf_i.server].v_l[cf_i.location].m_location["client_max_body_size"][0].size();
-			if(cf.v_s[cf_i.server].v_l[cf_i.location].m_location["client_max_body_size"][0][s_size - 1] == 'M' && stol(cf.v_s[cf_i.server].v_l[cf_i.location].m_location["client_max_body_size"][0]) * 1048576 < stol(fd_data.second["connection"]))
-				throw 413;
-			else if (cf.v_s[cf_i.server].v_l[cf_i.location].m_location["client_max_body_size"][0][s_size - 1] != 'M' && stol(cf.v_s[cf_i.server].v_l[cf_i.location].m_location["client_max_body_size"][0]) < stol(fd_data.second["connection"]))
-				throw 413;
-		}
-		else {
-			if(1048576 < stol(fd_data.second["connection"]))
-				throw 413; //conf로 설정한 client_body없으면 1M까지!
-		}
-	}		
 	
 	find_cf_location_i(cf, fd_data, cf_i);
+	check_conten_length(cf, fd_data, cf_i);
 	exec_redirection(cf ,cf_i);
 	if(confirmed_root_path(cf, cf_i) == "location is folder")
 		confirmed_file_path_and_file_type(cf, cf_i);
