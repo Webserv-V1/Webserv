@@ -11,7 +11,7 @@ connection::connection(config &cf, fd_set &rfds) : server_size(0), fd_arr(), rea
 		std::cout << "server " << i << std::endl;
 		//1. 서버 소켓 하나 생성
 		if ((serv_sock = socket(PF_INET, SOCK_STREAM, 0)) == -1)
-			throw (connection::socket_error());
+			throw (socket_error());
 		server_size++;
 		fd_arr.push_back(fd_info(serv_sock, &cf.v_s[i]));
 		//2. socket에 IP, Port 번호 할당
@@ -22,14 +22,14 @@ connection::connection(config &cf, fd_set &rfds) : server_size(0), fd_arr(), rea
 		int port = convert_to_num(cf.v_s[i].v_listen[0], 10);
 		serv_adr.sin_port = htons(port); //일단은 포트 번호 100로 설정
 		if (setsockopt(serv_sock, SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(reuse)) == -1) //바로 주소 재사용가능하도록 설정
-			throw (connection::setsockopt_error());
+			throw (setsockopt_error());
 		if (setsockopt(serv_sock, SOL_SOCKET, SO_REUSEPORT, &reuse, sizeof(reuse)) == -1) //바로 포트 재사용가능하도록 설정
-			throw (connection::setsockopt_error());
+			throw (setsockopt_error());
 		if (bind(serv_sock, reinterpret_cast<struct sockaddr*>(&serv_adr), sizeof(serv_adr)) == -1)
-			throw (connection::bind_error());
+			throw (bind_error());
 		//3. server socket에 클라이언트 접속 요청 대기할 수 있도록 - 일단 10개의 수신 대기열
 		if (listen(serv_sock, 128) == -1)
-			throw (connection::listen_error());
+			throw (listen_error());
 		FD_SET(serv_sock, &read_fds); //read_fds에서 서버 fd 활성화
 		//fcntl(serv_sock, F_SETFL, O_NONBLOCK);
 		//소켓 프로그래밍에서 4.클라이언트 접속 요청 수락하는 부분, 5.클라이언트와 연결된 소켓으로 데이터 송수신하는 부분은 다른 메서드에서
@@ -47,6 +47,11 @@ connection::~connection(void)
 connection::iterator	connection::fd_arr_begin(void)
 {
 	return (fd_arr.begin());
+}
+
+connection::iterator	connection::client_begin(void)
+{
+	return (fd_arr.begin() + server_size);
 }
 
 connection::iterator	connection::fd_arr_end(void)
@@ -95,7 +100,7 @@ void					connection::connect_client(int serv_sock)
 
 	//4.클라이언트 접속 요청 수락하는 부분
 	if ((clnt_sock = accept(serv_sock, reinterpret_cast<struct sockaddr*>(&clnt_adr), &adr_sz)) == -1)
-		throw (connection::accept_error());
+		throw (accept_error());
 	std::cout << "connecting: serv - " << serv_sock << ", clnt - " << clnt_sock << "\n";
 	std::cout << "clnt info: IP - " << inet_ntoa(clnt_adr.sin_addr) << ", Port - " << ntohs(clnt_adr.sin_port) << std::endl;
 	FD_SET(clnt_sock, &read_fds);
@@ -105,7 +110,7 @@ void					connection::connect_client(int serv_sock)
 
 void					connection::disconnect_client(int clnt_sock)
 {
-	std::vector<fd_info>::iterator it;
+	iterator it;
 
 	if (is_server_socket(clnt_sock))
 		return ;
@@ -124,33 +129,81 @@ void					connection::disconnect_client(int clnt_sock)
 	}
 }
 
-void					connection::get_client_msg(int clnt_sock, request &rq)
+bool					connection::check_connection(int clnt_sock, std::string rp)
+{
+	if (is_server_socket(clnt_sock))
+		return (true);
+	size_t last = rp.find("Connection: ");
+	last += ((std::string)"Connection: ").length();
+	size_t next = rp.find("\r\n", last);
+	std::string connection = rp.substr(last, next - last);
+	//std::cout << "NOW connection: " << connection << std::endl;
+	if (!connection.compare("keep-alive"))
+		return (true);
+	disconnect_client(clnt_sock);
+	return (false);
+}
+
+bool					connection::get_client_msg(int clnt_sock, request &rq)
 {
 	int		str_len;
 	char	buf[BUF_SIZE + 1];
 
+	//std::cout << "[get_client_msg]\n";
 	if ((str_len = recv(clnt_sock, buf, BUF_SIZE, 0)) < 0)
-		throw (connection::recv_error());
+		throw (recv_error());
+	if (!str_len)
+	{
+		disconnect_client(clnt_sock); //연결 해제
+		FD_CLR(clnt_sock, &read_fds);
+		return (false);
+	}
 	buf[str_len] = '\0';
+	//std::cout << "buf: " << buf << std::endl;
+	//rq.print_tmp();
 	fd_info &clnt_info = info_of_fd(clnt_sock);
 	concatenate_client_msg(clnt_info, buf); //해당 클라이언트에 문자열 이어서 저장
+	//std::cout << "msg: " << clnt_info.msg << std::endl;
+	//std::cout << "len after concat : " << clnt_info.len << std::endl;
 	if (is_input_completed(clnt_info, rq)) //입력값을 다 받았는지 체크해 입력이 끝났다고 판단되면 read_fds에서 fd 삭제(이때 내부에서 파싱과 같은 처리도 같이..)
 		FD_CLR(clnt_sock, &read_fds);
+	return (true);
+}
+
+void					connection::clear_client_msg(int clnt_sock)
+{
+	fd_info &clnt_info = info_of_fd(clnt_sock);
+	clnt_info.tmp.clear();
+	clnt_info.msg.clear();
+	clnt_info.split_msg.clear();
+	clnt_info.status = RQ_LINE_NOT_PARSED;
 }
 
 void					connection::concatenate_client_msg(fd_info &clnt_info, std::string to_append)
 {
 	//요청 메세지의 각 라인이 '\r\n'으로 끝난다고 함. 하지만 견고한 애플리케이션이라면 '\n'만 있는 경우도? 처리할 수 있어야 한다는 걸 보고 '\r'은 저장하기 전 삭제
-	to_append.erase(remove(to_append.begin(), to_append.end(), '\r'), to_append.end());
+	//std::cout << "[concatenate_client_msg]\n";
+	if (is_before_body_input(clnt_info))
+		to_append.erase(remove(to_append.begin(), to_append.end(), '\r'), to_append.end());
 	clnt_info.msg.append(to_append);
+}
+
+bool					connection::is_before_body_input(fd_info &clnt_info)
+{
+	if (clnt_info.status == RQ_LINE_NOT_PARSED || clnt_info.status == HEADER_NOT_PARSED)
+		return (true);
+	return (false);
 }
 
 bool					connection::is_input_completed(fd_info &clnt_info, request &rq)
 {
+	//std::cout << "[is_input_completed]\n";
 	request::iterator	it;
 	//clnt_info에 status 추가 - 디폴트 값 : RQ_LINE_NOT_PARSED, rq라인 파싱 이후 HEADER_NOT_PARSED, 헤더를 파싱한 이후에 본문 처리 여부에 따라 NO_BODY, TRANSFER_ENCODING, CONTENT_LENGTH 중 하나로 저장됨.
 	if (clnt_info.status == RQ_LINE_NOT_PARSED && clnt_info.msg.find("\n") != std::string::npos)
 	{
+		if (!trim_first_lf(clnt_info))
+			return (false);
 		it = parse_rq_line(clnt_info, rq);
 		if (rq.is_invalid(it))
 			return (completed_input(rq, it, "", -1));
@@ -168,6 +221,7 @@ bool					connection::is_input_completed(fd_info &clnt_info, request &rq)
 		return (is_transfer_encoding_completed(clnt_info, rq));
 	else if (clnt_info.status == CONTENT_LENGTH)
 		return (is_content_length_completed(clnt_info, rq));
+	//멀티파트 처리하면서 - 끝났는지 체크
 	return (false);
 }
 
@@ -181,6 +235,7 @@ bool					connection::completed_input(request &rq, request::iterator &it, std::st
 
 request::iterator		connection::parse_rq_line(fd_info &clnt_info, request &rq)
 {
+	//std::cout << "[parse_rq_line]\n";
 	size_t		next = clnt_info.msg.find("\n");
 	std::string	res = clnt_info.msg.substr(0, next);
 	clnt_info.msg = clnt_info.msg.substr(next);
@@ -194,6 +249,7 @@ request::iterator		connection::parse_client_header_by_line(fd_info &clnt_info, r
 	size_t	last = 0;
 	size_t	next = 0;
 
+	//std::cout << "[parse_client_header_by_line]\n";
 	while (clnt_info.msg[last] == '\n')
 		last++;
 	while ((next = clnt_info.msg.find("\n", last)) != std::string::npos)
@@ -214,6 +270,8 @@ request::iterator		connection::parse_client_header_by_line(fd_info &clnt_info, r
 
 void					connection::is_body_exist(fd_info &clnt_info, request &rq, request::iterator &it)
 {
+	//std::cout << "[is_body_exist]\n";
+
 	if (rq.is_invalid(it) || !rq.which_method(it, "POST")) //telnet 이용 시 본문이 필요하지 않는 메서드는 아예 입력 종료 -> POST가 아닐 때는 더 이상 입력x
 	{
 		clnt_info.status = NO_BODY;
@@ -224,7 +282,10 @@ void					connection::is_body_exist(fd_info &clnt_info, request &rq, request::ite
 	if (te_flag)
 		clnt_info.status = TRANSFER_ENCODING;
 	else if (cl_flag)
+	{
 		clnt_info.status = CONTENT_LENGTH;
+		//멀티파트 타입인지 검사
+	}
 	else
 		clnt_info.status = NO_BODY;
 }
@@ -241,7 +302,7 @@ bool					connection::is_transfer_encoding_completed(fd_info &clnt_info, request 
 		{
 			try
 			{
-				length = convert_to_num(clnt_info.msg.substr(0, next), 16); //내부에서 변환이 잘못 됐거나 음수면 에러 throw
+				length = convert_to_num(trim_last_cr(clnt_info.msg.substr(0, next)), 16); //내부에서 변환이 잘못 됐거나 음수면 에러 throw
 				last = next + 1;
 				tmp = last;
 				int	clnt_length = 0;
@@ -249,20 +310,18 @@ bool					connection::is_transfer_encoding_completed(fd_info &clnt_info, request 
 				{
 					if ((next = clnt_info.msg.find("\n", tmp)) == std::string::npos)
 						return (false);
-					std::string	tmp_str = clnt_info.msg.substr(last, next - last);
-					clnt_length = body_length(tmp_str);
+					std::string	tmp_str = trim_last_crlf(clnt_info.msg.substr(last, next - last + 1), length);
+					clnt_length = tmp_str.length();
 					if (!length)
 						return (completed_input(rq, it, clnt_info.tmp, -1));
 					if (length == clnt_length)
 					{
-						if (!clnt_info.tmp.empty())
-							clnt_info.tmp.append("\n");
 						clnt_info.tmp.append(tmp_str);
 						clnt_info.msg = clnt_info.msg.substr(next + 1);
 						break ;
 					}
 					else if (length < clnt_length)
-						throw (request::incorrect_body_length_error());
+						throw (incorrect_body_length_error());
 					tmp = next + 1;
 				}
 			}
@@ -281,47 +340,67 @@ bool					connection::is_content_length_completed(fd_info &clnt_info, request &rq
 {
 	request::iterator	it = rq.find_clnt_in_tmp(clnt_info.fd);
 	int					length;
+	std::string			body;
 
+	//std::cout << "[is_content_length_completed]\n";
 	try
 	{
 		length = convert_to_num(rq.corresponding_header_value(it, "Content-Length"), 10);
-		if (clnt_info.msg[clnt_info.msg.length() - 1] != '\n')
-			return (false);
-		int		clnt_length = body_length(clnt_info.msg.substr(0, clnt_info.msg.length() - 1)); //마지막 \n은 제외하고 길이 계산
+		body = trim_last_crlf(clnt_info.msg, length);
+		int clnt_length = body.length();
+		std::cout << "length: " << length << ", clnt length: " << clnt_length << "\n";
 		if (clnt_length < length)
 			return (false);
 		else if (clnt_length > length)
-			throw (request::incorrect_body_length_error());
+			throw (incorrect_body_length_error());
 	}
 	catch (const std::exception& e)
 	{
 		return (completed_input(rq, it, "", 400));
 	}
-	return (completed_input(rq, it, clnt_info.msg.substr(0, clnt_info.msg.length() - 1), -1));
+	return (completed_input(rq, it, clnt_info.msg, -1));
 }
 
 int						connection::convert_to_num(std::string str_length, int radix)
 {
 	if (str_length.empty())
-		throw (request::incorrect_body_length_error());
+		throw (incorrect_body_length_error());
 	char	*end;
 	int		length = static_cast<int>(strtol(str_length.c_str(), &end, radix));
 	if (*end || length < 0)
-		throw (request::incorrect_body_length_error());
+		throw (incorrect_body_length_error());
 	return (length);
 }
 
-int						connection::body_length(std::string msg)
+bool					connection::trim_first_lf(fd_info &clnt_info)
 {
-	size_t	newline_num = 0;
-	size_t	last = 0;
-	size_t	next = 0;
-	while ((next = msg.find("\n", last)) != std::string::npos)
+	//std::cout << "[trim_first_lf]\n";
+	int i = 0;
+	while (clnt_info.msg[i] == '\n')
+		i++;
+	clnt_info.msg = clnt_info.msg.substr(i);
+	//std::cout << "substr msg: " << clnt_info.msg << "<end>\n";
+	if (clnt_info.msg.find("\n") != std::string::npos)
+		return (true);
+	return (false);
+}
+
+std::string				connection::trim_last_cr(std::string msg)
+{
+	if (msg[msg.length() - 1] == '\r')
+		return (msg.substr(0, msg.length() - 1));
+	return (msg);
+}
+
+std::string				connection::trim_last_crlf(std::string msg, int required_length)
+{
+	if (msg.length() - required_length > 0 && msg.length() - required_length <= 2)
 	{
-		newline_num++;
-		last = next + 1;
+		std::string	remain = msg.substr(required_length);
+		if (!remain.compare("\r") || !remain.compare("\n") || !remain.compare("\r\n"))
+			return (msg.substr(0, required_length));
 	}
-	return (msg.length() + newline_num); //msg의 실제 길이 + \r 개수
+	return (msg);
 }
 
 void					connection::print_client_msg(int clnt_sock)

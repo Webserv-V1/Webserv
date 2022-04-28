@@ -521,6 +521,7 @@ void make_request_msg(int &state_code, std::string &request_msg, conf_index &cf_
 	request_msg += "Connection: " + cf_i.Connection + "\r\n";
 	// 주의! : CGI 실행되고 connection 다시한번 확인하기!!
 	request_msg += (std::string)"Date: " + make_GMT_time() + "\r\n";
+	request_msg += "Cache-Control: no-store\r\n";
 	//request_msg += "\r\n";
 	if(cf_i.cgi_flag == true)
 	{
@@ -586,6 +587,7 @@ void make_request_redirect(std::string &request_msg, conf_index &cf_i)
 	//request_msg += (std::string)"Content-Type: text/html" + "\r\n"; //리다이렉션은 필요없을듯..
 	request_msg += (std::string)"Connection: keep-alive" + "\r\n";
 	request_msg += (std::string)"Date: " + make_GMT_time() + "\r\n";
+	request_msg += "Cache-Control: no-store\r\n";
 	request_msg += (std::string)"Location: " + cf_i.redirect_path + "\r\n" + "\r\n";
 }
 
@@ -644,7 +646,7 @@ void make_request(int &state_code, std::string &request_msg, conf_index &cf_i, s
 
 void    exec_request(config &cf, fd_set &write_fds, request *rq, std::string &request_msg, std::map<int, std::string> &m_state_code, std::map<std::string, std::string > &m_mt)
 {
-	while (!rq->empty())
+	if (!rq->empty())
 	{
 		//std::cout << "hi2~ " <<std::endl;
 		conf_index	cf_i;
@@ -654,9 +656,12 @@ void    exec_request(config &cf, fd_set &write_fds, request *rq, std::string &re
 	    std::cout << "executing method(GET, POST, DELETE)" << std::endl;
 		//=====================입력값 확인.=====================
 
-	  if (!rq->is_invalid(it))
-	        rq->print();
+		rq->print();
+	 /* if (!rq->is_invalid(it))
+	        rq->print();*/
 		try{
+			if (rq->is_invalid(it))
+				throw (rq->get_errno(it));
       		exec_header(cf, *it, cf_i);
 			exec_method(cf, it, cf_i);
 			exec_body();
@@ -679,5 +684,6 @@ void    exec_request(config &cf, fd_set &write_fds, request *rq, std::string &re
 		}
 	    FD_SET((it->first).fd, &write_fds); //해당 fd에 대해 출력할 수 있도록 설정
 		rq->erase(it);
+		std::cout << "ending exec_request\n";
 	}
 }

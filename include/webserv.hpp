@@ -6,16 +6,7 @@
 # include <sys/select.h>
 # include "connection.hpp"
 # include "request.hpp"
-
-# define	BUF_SIZE 100
-
-class select_error : public std::exception
-{
-	virtual const char	*what(void) const throw()
-	{
-		return ("Unexpected error while executing 'select' function");
-	}
-};
-
+# include "error.hpp"
+# include "../default_conf.hpp"
 
 #endif

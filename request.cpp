@@ -82,7 +82,8 @@ request::iterator		request::insert_rq_line(int clnt_fd, server *server_info, std
 	size_t					next, last = 0;
 	for (int i = 0; i < 3; i++)
 	{
-		next = rq_line.find(" ", last);
+		if ((next = rq_line.find(" ", last)) == std::string::npos && i != 2)
+			break ;
 		if (!i)
 			first.method = rq_line.substr(last, next - last);
 		else if (i == 1)
@@ -229,7 +230,7 @@ bool					request::set_error(request::iterator &it, int err_no)
 	return (true);
 }
 
-int						request::body_length(std::string msg)
+/*int						request::body_length(std::string msg)
 {
 	size_t	newline_num = 0;
 	size_t	last = 0;
@@ -240,4 +241,4 @@ int						request::body_length(std::string msg)
 		last = next + 1;
 	}
 	return (msg.length() + newline_num); //msg의 실제 길이 + \r 개수
-}
+}*/

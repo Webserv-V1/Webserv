@@ -12,13 +12,8 @@
 # include <exception>
 # include "parsing.hpp"
 # include "request.hpp"
-
-# define	BUF_SIZE 			100
-# define	RQ_LINE_NOT_PARSED	0
-# define	HEADER_NOT_PARSED	1
-# define	NO_BODY				2
-# define	TRANSFER_ENCODING	3
-# define	CONTENT_LENGTH		4
+# include "error.hpp"
+# include "../default_conf.hpp"
 
 //읽고 쓸 때 체크해야 하는 fd 배열의 집합 - select에서 사용하나 서버 소켓에 대해 해당 read_fd를 활성화해줘야 하기 때문에 connection에서 선언
 class IO_fd_set
@@ -64,14 +59,18 @@ public:
 	connection(config &cf, fd_set &rfds);
 	~connection(void);
 	iterator					fd_arr_begin(void);
+	iterator					client_begin(void);
 	iterator					fd_arr_end(void);
 	bool						is_server_socket(int fd);
 	int							max_fd(void);
 	fd_info						&info_of_fd(int fd);
 	void						connect_client(int serv_sock);
 	void						disconnect_client(int clnt_sock);
-	void						get_client_msg(int clnt_sock, request &rq);
+	bool						check_connection(int clnt_sock, std::string rp);
+	bool						get_client_msg(int clnt_sock, request &rq);
+	void						clear_client_msg(int clnt_sock);
 	void						concatenate_client_msg(fd_info &clnt_info, std::string to_append);
+	bool						is_before_body_input(fd_info &clnt_info);
 	bool						is_input_completed(fd_info &clnt_info, request &rq);
 	bool						completed_input(request &rq, request::iterator &it, std::string body, int err_no);
 	request::iterator			parse_rq_line(fd_info &clnt_info, request &rq);
@@ -80,50 +79,9 @@ public:
 	bool						is_transfer_encoding_completed(fd_info &clnt_info, request &rq);
 	bool						is_content_length_completed(fd_info &clnt_info, request &rq);
 	int							convert_to_num(std::string str_length, int radix);
-	int							body_length(std::string msg);
+	bool						trim_first_lf(fd_info &clnt_info);
+	std::string					trim_last_cr(std::string msg);
+	std::string					trim_last_crlf(std::string msg, int required_length);
 	void						print_client_msg(int clnt_sock);
-
-	class	socket_error : public std::exception
-	{
-		virtual const char	*what(void) const throw()
-		{
-			return ("Unexpected error while executing 'socket' function");
-		}
-	};
-	class	setsockopt_error : public std::exception
-	{
-		virtual const char	*what(void) const throw()
-		{
-			return ("Unexpected error while executing 'setsockopt' function");
-		}
-	};
-	class	bind_error : public std::exception
-	{
-		virtual const char	*what(void) const throw()
-		{
-			return ("Unexpected error while executing 'bind' function");
-		}
-	};
-	class	listen_error : public std::exception
-	{
-		virtual const char	*what(void) const throw()
-		{
-			return ("Unexpected error while executing 'listen' function");
-		}
-	};
-	class	accept_error : public std::exception
-	{
-		virtual const char	*what(void) const throw()
-		{
-			return ("Unexpected error while executing 'accept' function");
-		}
-	};
-	class	recv_error : public std::exception
-	{
-		virtual const char	*what(void) const throw()
-		{
-			return ("Unexpected error while executing 'recv' function");
-		}
-	};
 };
 #endif

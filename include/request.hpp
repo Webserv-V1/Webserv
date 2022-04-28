@@ -8,6 +8,8 @@
 # include <vector>
 # include <map>
 # include "parsing.hpp"
+# include "error.hpp"
+# include "../default_conf.hpp"
 
 class base_request
 {
@@ -63,21 +65,6 @@ public:
 	std::string	get_body(iterator &it);
 	bool		set_error(iterator &it, int err_no);
 	int			body_length(std::string msg);
-
-	class	invalid_header_error : public std::exception
-	{
-		virtual const char	*what(void) const throw()
-		{
-			return ("Invalid Header!!");
-		}
-	};
-	class	incorrect_body_length_error : public std::exception
-	{
-		virtual const char	*what(void) const throw()
-		{
-			return ("Incorrect Body Length!!");
-		}
-	};
 };
 
 #endif
