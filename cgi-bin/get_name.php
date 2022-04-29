@@ -1,4 +1,4 @@
-#!/opt/homebrew/bin/php
+#!/usr/bin/php
 <?php
 $body = "";
 $body .= "<!DOCTYPE html>\n";

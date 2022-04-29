@@ -221,8 +221,8 @@ bool					connection::is_input_completed(fd_info &clnt_info, request &rq)
 		return (is_transfer_encoding_completed(clnt_info, rq));
 	else if (clnt_info.status == CONTENT_LENGTH)
 		return (is_content_length_completed(clnt_info, rq));
-	//else if (clnt_info.status == MULTIPART)
-	//	return (is_multipart_completed(clnt_info, rq));
+	else if (clnt_info.status == MULTIPART)
+		return (is_multipart_completed(clnt_info, rq));
 	return (false);
 }
 
@@ -285,9 +285,9 @@ void					connection::is_body_exist(fd_info &clnt_info, request &rq, request::ite
 	else if (cl_flag)
 	{
 		std::string	type = rq.corresponding_header_value(it, "Content-Type");
-		/*if (type.find("multipart/form-data") != std::string::npos)
+		if (type.find("multipart/form-data") != std::string::npos)
 			clnt_info.status = MULTIPART;
-		else*/
+		else
 			clnt_info.status = CONTENT_LENGTH;
 	}
 	else
