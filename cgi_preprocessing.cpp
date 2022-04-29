@@ -41,9 +41,13 @@ CGI_preprocessing::~CGI_preprocessing()
 std::string		CGI_preprocessing::exec_CGI(void)
 {
 	char		**env_arr;
-	char		**argv;
+	char		*argv[2];
 	pid_t		pid;
 	std::string	res = "";
+	FILE		*fin = tmpfile();
+	FILE		*fout = tmpfile();
+	int			fdin = fileno(fin);
+	int			fdout = fileno(fout);
 	try
 	{
 		env_arr = new char*[env.size() + 1];
@@ -55,9 +59,8 @@ std::string		CGI_preprocessing::exec_CGI(void)
 			strcpy(env_arr[i++], tmp.c_str());
 		}
 		env_arr[i] = 0;
-		argv = new char*[2];
-		argv[0] = new char[env["PATH_INFO"].length() + 1];
-		strcpy(argv[0], env["PATH_INFO"].c_str());
+		argv[0] = new char[env["SCRIPT_NAME"].length() + 1];
+		strcpy(argv[0], env["SCRIPT_NAME"].c_str());
 		argv[1] = 0;
 
 		/*std::cout << "checking env_arr\n";
@@ -66,19 +69,9 @@ std::string		CGI_preprocessing::exec_CGI(void)
 			std::cout << env_arr[i] << std::endl;
 		}*/
 
-		FILE	*fin = tmpfile();
-		FILE	*fout = tmpfile();
-		int		fdin = fileno(fin);
-		int		fdout = fileno(fout);
 		write(fdin, body.c_str(), body.length());
-
 		if ((pid = fork()) == -1)
-		{
-			for (int i = 0; env_arr[i]; i++)
-				delete[] env_arr[i];
-			delete[] env_arr;
 			throw (fork_error());
-		}
 		else if (!pid)
 		{
 			dup2(fdin, STDIN_FILENO);
@@ -92,6 +85,7 @@ std::string		CGI_preprocessing::exec_CGI(void)
 		waitpid(pid, &status, 0);
 		if (WIFEXITED(status))
 			status = WEXITSTATUS(status);
+
 		lseek(fdout, 0, SEEK_SET);
 		int len;
 		char buf[BUF_SIZE + 1];
@@ -102,18 +96,16 @@ std::string		CGI_preprocessing::exec_CGI(void)
 			if (!len)
 				break ;
 		}
-		
-		for (int i = 0; env_arr[i]; i++)
-			delete[] env_arr[i];
-		delete[] env_arr;
-		delete[] argv[0];
-		delete[] argv;
-		fclose(fin);
-		fclose(fout);
 	}
 	catch (const std::exception& e)
 	{
 		res = "Status: 500 Internal Server Error\r\n\r\n";
 	}
+	for (int i = 0; env_arr[i]; i++)
+		delete[] env_arr[i];
+	delete[] env_arr;
+	delete argv[0];
+	fclose(fin);
+	fclose(fout);
 	return (res);
 }

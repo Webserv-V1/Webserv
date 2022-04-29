@@ -78,6 +78,7 @@ public:
 	void						is_body_exist(fd_info &clnt_info, request &rq, request::iterator &it);
 	bool						is_transfer_encoding_completed(fd_info &clnt_info, request &rq);
 	bool						is_content_length_completed(fd_info &clnt_info, request &rq);
+	bool						is_multipart_completed(fd_info &clnt_info, request &rq);
 	int							convert_to_num(std::string str_length, int radix);
 	bool						trim_first_lf(fd_info &clnt_info);
 	std::string					trim_last_cr(std::string msg);

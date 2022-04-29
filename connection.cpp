@@ -162,8 +162,8 @@ bool					connection::get_client_msg(int clnt_sock, request &rq)
 	std::cout << "buf: " << buf << std::endl;
 	//rq.print_tmp();
 	fd_info &clnt_info = info_of_fd(clnt_sock);
-	concatenate_client_msg(clnt_info, buf); //해당 클라이언트에 문자열 이어서 저장
-	//std::cout << "msg: " << clnt_info.msg << std::endl;
+	concatenate_client_msg(clnt_info, std::string(buf, str_len)); //해당 클라이언트에 문자열 이어서 저장
+	std::cout << "msg: " << clnt_info.msg << std::endl;
 	//std::cout << "len after concat : " << clnt_info.len << std::endl;
 	if (is_input_completed(clnt_info, rq)) //입력값을 다 받았는지 체크해 입력이 끝났다고 판단되면 read_fds에서 fd 삭제(이때 내부에서 파싱과 같은 처리도 같이..)
 		FD_CLR(clnt_sock, &read_fds);
@@ -221,7 +221,8 @@ bool					connection::is_input_completed(fd_info &clnt_info, request &rq)
 		return (is_transfer_encoding_completed(clnt_info, rq));
 	else if (clnt_info.status == CONTENT_LENGTH)
 		return (is_content_length_completed(clnt_info, rq));
-	//멀티파트 처리하면서 - 끝났는지 체크
+	else if (clnt_info.status == MULTIPART)
+		return (is_multipart_completed(clnt_info, rq));
 	return (false);
 }
 
@@ -283,8 +284,11 @@ void					connection::is_body_exist(fd_info &clnt_info, request &rq, request::ite
 		clnt_info.status = TRANSFER_ENCODING;
 	else if (cl_flag)
 	{
-		clnt_info.status = CONTENT_LENGTH;
-		//멀티파트 타입인지 검사
+		std::string	type = rq.corresponding_header_value(it, "Content-Type");
+		if (type.find("multipart/form-data") != std::string::npos)
+			clnt_info.status = MULTIPART;
+		else
+			clnt_info.status = CONTENT_LENGTH;
 	}
 	else
 		clnt_info.status = NO_BODY;
@@ -359,6 +363,19 @@ bool					connection::is_content_length_completed(fd_info &clnt_info, request &rq
 		return (completed_input(rq, it, "", 400));
 	}
 	return (completed_input(rq, it, clnt_info.msg, -1));
+}
+
+bool					connection::is_multipart_completed(fd_info &clnt_info, request &rq)
+{
+	request::iterator	it = rq.find_clnt_in_tmp(clnt_info.fd);
+	std::string		type = rq.corresponding_header_value(it, "Content-Type");
+	size_t			idx = type.find("boundary=") + ((std::string)"boundary=").length();
+	std::string		boundary = type.substr(idx);
+	std::cout << "boundary: " << boundary << std::endl;
+	boundary += "--";
+	if (clnt_info.msg.rfind(boundary) != std::string::npos)
+		return (completed_input(rq, it, clnt_info.msg, -1));
+	return (false);
 }
 
 int						connection::convert_to_num(std::string str_length, int radix)
