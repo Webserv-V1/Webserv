@@ -93,7 +93,7 @@ request::iterator		request::insert_rq_line(int clnt_fd, server *server_info, std
 		last = next + 1;
 	}
 	tmp_rq.push_back(std::make_pair(first, second_type()));
-	request::iterator	it = tmp_rq.end() - 1;
+	request::iterator	it = --tmp_rq.end();
 	if (check_info_invalid(first))
 		set_error(it, 400);
 	return (it);
@@ -120,7 +120,7 @@ request::iterator		request::insert_header(iterator &it, std::vector<std::string>
 	}
 	if (check_header_invalid(it->second))
 		set_error(it, 400);
-	return (tmp_rq.end() - 1);
+	return (--tmp_rq.end());
 }
 
 request::iterator		request::insert(request::iterator &it, std::string msg_body)
@@ -128,7 +128,7 @@ request::iterator		request::insert(request::iterator &it, std::string msg_body)
 	(it->second).insert(std::make_pair("", msg_body));
 	rq.insert(rq.end(), *it);
 	tmp_rq.erase(it);
-	return (rq.end() - 1);
+	return (--rq.end());
 }
 
 void					request::erase(request::iterator &it)

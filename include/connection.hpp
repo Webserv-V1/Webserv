@@ -51,12 +51,14 @@ class connection
 private:
 	int							server_size; //fd_arr에서 서버, 클라이언트 구별 위함
 	std::vector<fd_info>		fd_arr; //서버와 클라이언트 fd 모두 여기에 저장 - 나중에 입출력 검사 위해
-	fd_set						&read_fds;
+	//fd_set						&read_fds;
 
 public:
 	typedef std::vector<fd_info>::iterator	iterator;
+	IO_fd_set					&fdset;
 
-	connection(config &cf, fd_set &rfds);
+	//connection(config &cf, fd_set &rfds);
+	connection(config &cf, IO_fd_set &fs);
 	~connection(void);
 	iterator					fd_arr_begin(void);
 	iterator					client_begin(void);

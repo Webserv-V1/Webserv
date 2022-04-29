@@ -15,11 +15,15 @@ $body .= "</head>\n";
 $body .= "<body>\n";
 
 $body .= "<h1><em>get_name</em> CGI program</h1>\n";
+
+fseek(STDIN, 0, SEEK_SET);
+$body .= ("<p>".$_GET["first_name"]."<p>\n");
+
 if (strcmp($_SERVER["REQUEST_METHOD"], "GET") == 0)
 	$data = $_SERVER["QUERY_STRING"];
 else
 {
-	fseek(STDIN, 0, SEEK_SET);
+	//fseek(STDIN, 0, SEEK_SET);
 	$data = fread(STDIN, $_SERVER["CONTENT_LENGTH"]);
 }
 parse_str($data, $res);

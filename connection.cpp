@@ -1,6 +1,6 @@
 #include "./include/connection.hpp"
 
-connection::connection(config &cf, fd_set &rfds) : server_size(0), fd_arr(), read_fds(rfds)
+connection::connection(config &cf, IO_fd_set &fs) : server_size(0), fd_arr(), fdset(fs)
 {
 	int serv_sock;
 	int reuse = 1;
@@ -8,7 +8,6 @@ connection::connection(config &cf, fd_set &rfds) : server_size(0), fd_arr(), rea
 	//지금은 하나의 서버만 생성한다고 가정해서 작성하지만 나중엔 Config를 받아서 서버를 모두 생성하도록 수정
 	for (int i = 0; i < (int)cf.v_s.size(); i++)
 	{
-		std::cout << "server " << i << std::endl;
 		//1. 서버 소켓 하나 생성
 		if ((serv_sock = socket(PF_INET, SOCK_STREAM, 0)) == -1)
 			throw (socket_error());
@@ -20,17 +19,17 @@ connection::connection(config &cf, fd_set &rfds) : server_size(0), fd_arr(), rea
 		std::cout << "IP: " << cf.v_s[i].v_listen[1] << ", Port: " << cf.v_s[i].v_listen[0] << std::endl;
 		serv_adr.sin_addr.s_addr = inet_addr(cf.v_s[i].v_listen[1].c_str());
 		int port = convert_to_num(cf.v_s[i].v_listen[0], 10);
-		serv_adr.sin_port = htons(port); //일단은 포트 번호 100로 설정
+		serv_adr.sin_port = htons(port);
 		if (setsockopt(serv_sock, SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(reuse)) == -1) //바로 주소 재사용가능하도록 설정
 			throw (setsockopt_error());
 		if (setsockopt(serv_sock, SOL_SOCKET, SO_REUSEPORT, &reuse, sizeof(reuse)) == -1) //바로 포트 재사용가능하도록 설정
 			throw (setsockopt_error());
 		if (bind(serv_sock, reinterpret_cast<struct sockaddr*>(&serv_adr), sizeof(serv_adr)) == -1)
 			throw (bind_error());
-		//3. server socket에 클라이언트 접속 요청 대기할 수 있도록 - 일단 10개의 수신 대기열
-		if (listen(serv_sock, 128) == -1)
+		//3. server socket에 클라이언트 접속 요청 대기할 수 있도록
+		if (listen(serv_sock, 1024) == -1)
 			throw (listen_error());
-		FD_SET(serv_sock, &read_fds); //read_fds에서 서버 fd 활성화
+		FD_SET(serv_sock, &(fdset.read_fds)); //read_fds에서 서버 fd 활성화
 		//fcntl(serv_sock, F_SETFL, O_NONBLOCK);
 		//소켓 프로그래밍에서 4.클라이언트 접속 요청 수락하는 부분, 5.클라이언트와 연결된 소켓으로 데이터 송수신하는 부분은 다른 메서드에서
 	}
@@ -103,7 +102,7 @@ void					connection::connect_client(int serv_sock)
 		throw (accept_error());
 	std::cout << "connecting: serv - " << serv_sock << ", clnt - " << clnt_sock << "\n";
 	std::cout << "clnt info: IP - " << inet_ntoa(clnt_adr.sin_addr) << ", Port - " << ntohs(clnt_adr.sin_port) << std::endl;
-	FD_SET(clnt_sock, &read_fds);
+	FD_SET(clnt_sock, &(fdset.read_fds));
 	fcntl(clnt_sock, F_SETFL, O_NONBLOCK); //각 클라이언트 fd를 논블로킹으로 설정
 	fd_arr.push_back(fd_info(clnt_sock, info_of_fd(serv_sock).server_info));
 }
@@ -140,7 +139,7 @@ bool					connection::check_connection(int clnt_sock, std::string rp)
 	//std::cout << "NOW connection: " << connection << std::endl;
 	if (!connection.compare("keep-alive"))
 		return (true);
-	disconnect_client(clnt_sock);
+	//disconnect_client(clnt_sock);
 	return (false);
 }
 
@@ -153,20 +152,16 @@ bool					connection::get_client_msg(int clnt_sock, request &rq)
 	if ((str_len = recv(clnt_sock, buf, BUF_SIZE, 0)) < 0)
 		throw (recv_error());
 	if (!str_len)
-	{
-		disconnect_client(clnt_sock); //연결 해제
-		FD_CLR(clnt_sock, &read_fds);
 		return (false);
-	}
 	buf[str_len] = '\0';
-	std::cout << "buf: " << buf << std::endl;
+	//std::cout << "buf: " << buf << std::endl;
 	//rq.print_tmp();
 	fd_info &clnt_info = info_of_fd(clnt_sock);
 	concatenate_client_msg(clnt_info, std::string(buf, str_len)); //해당 클라이언트에 문자열 이어서 저장
-	std::cout << "msg: " << clnt_info.msg << std::endl;
+	//std::cout << "msg: " << clnt_info.msg << std::endl;
 	//std::cout << "len after concat : " << clnt_info.len << std::endl;
 	if (is_input_completed(clnt_info, rq)) //입력값을 다 받았는지 체크해 입력이 끝났다고 판단되면 read_fds에서 fd 삭제(이때 내부에서 파싱과 같은 처리도 같이..)
-		FD_CLR(clnt_sock, &read_fds);
+		FD_CLR(clnt_sock, &(fdset.read_fds));
 	return (true);
 }
 

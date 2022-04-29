@@ -12,6 +12,8 @@
 # include "error.hpp"
 # include "../default_conf.hpp"
 
+class conf_index;
+
 class CGI_preprocessing
 {
 private:

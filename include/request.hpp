@@ -5,7 +5,7 @@
 # include <string>
 # include <cstring>
 # include <algorithm>
-# include <vector>
+# include <list>
 # include <map>
 # include "parsing.hpp"
 # include "error.hpp"
@@ -36,7 +36,7 @@ public:
 	typedef base_request						first_type; //클라이언트 fd, 첫 번쨰 줄에 오는 정보 파싱한 값, 전체적인 정보가 유효한지 알려주는 플래그 저장
 	typedef std::map<std::string, std::string>	second_type; //헤더와 본문 내용 map 형식으로 저장(본문의 key값은 빈 문자열로)
 	typedef std::pair<first_type, second_type>	value_type;
-	typedef std::vector<value_type>				value_arr;
+	typedef std::list<value_type>				value_arr;
 	typedef value_arr::iterator					iterator;
 private:
 	value_arr	tmp_rq;
