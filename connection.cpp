@@ -159,11 +159,11 @@ bool					connection::get_client_msg(int clnt_sock, request &rq)
 		return (false);
 	}
 	buf[str_len] = '\0';
-	std::cout << "buf: " << buf << std::endl;
+	//std::cout << "buf: " << buf << std::endl;
 	//rq.print_tmp();
 	fd_info &clnt_info = info_of_fd(clnt_sock);
 	concatenate_client_msg(clnt_info, std::string(buf, str_len)); //해당 클라이언트에 문자열 이어서 저장
-	std::cout << "msg: " << clnt_info.msg << std::endl;
+	//std::cout << "msg: " << clnt_info.msg << std::endl;
 	//std::cout << "len after concat : " << clnt_info.len << std::endl;
 	if (is_input_completed(clnt_info, rq)) //입력값을 다 받았는지 체크해 입력이 끝났다고 판단되면 read_fds에서 fd 삭제(이때 내부에서 파싱과 같은 처리도 같이..)
 		FD_CLR(clnt_sock, &read_fds);
@@ -352,7 +352,15 @@ bool					connection::is_content_length_completed(fd_info &clnt_info, request &rq
 		length = convert_to_num(rq.corresponding_header_value(it, "Content-Length"), 10);
 		body = trim_last_crlf(clnt_info.msg, length);
 		int clnt_length = body.length();
+//		std::cout << "hohohohohohohoohoohohohohohohoohohohohohohhoho " << std::endl;
+//		std::cout << body << std::endl;
+//		std::cout << "hohohohohohohoohoohohohohohohoohohohohohohhoho " << std::endl;
+//
+		std::cout << "clnt_info.msg : " << clnt_info.msg.size() << std::endl;
 		std::cout << "length: " << length << ", clnt length: " << clnt_length << "\n";
+		std::cout << "==========11111111=========" << std::endl;
+		std::cout << body << std::endl;
+		std::cout << "==========2222222=========" << std::endl;
 		if (clnt_length < length)
 			return (false);
 		else if (clnt_length > length)
