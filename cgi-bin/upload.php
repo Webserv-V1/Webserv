@@ -49,16 +49,17 @@ if ($_FILES["fileToUpload"]["size"] > 1500000) {
 	//echo "Sorry, your file is too large.";
   $uploadOk = 0;
 }
-
 // Allow certain file formats
+$test_tmp = $_FILES["fileToUpload"]["name"];
 if($imageFileType != "jpg" && $imageFileType != "png" && $imageFileType != "jpeg"
 && $imageFileType != "gif" ) {
-  $body .= "<p>Sorry, only JPG, JPEG, PNG & GIF files are allowed.</p>\n";
+  $body .= "<p>!!!!$test_tmp!!!! Sorry, only JPG, JPEG, PNG & GIF files are allowed.</p>\n";
   //echo "Sorry, only JPG, JPEG, PNG & GIF files are allowed.";
   $uploadOk = 0;
 }
 
 // Check if $uploadOk is set to 0 by an error
+$test_tmp = $_FILES["fileToUpload"]["tmp_name"];
 if ($uploadOk == 0) {
   $body .= "<p>Sorry, your file was not uploaded.</p>\n";
   //echo "Sorry, your file was not uploaded.";
@@ -71,7 +72,7 @@ if ($uploadOk == 0) {
     echo "Status: 200 Success\r\n";
 
   } else {
-    $body .= "<p>Sorry, there was an error uploading your file.</p>\n";
+    $body .= "<p>!!!$test_tmp!!!  Sorry, there was an error uploading your file.</p>\n";
     //echo "Sorry, there was an error uploading your file.";
     echo "Status: 500 Internal Server Error";
   }

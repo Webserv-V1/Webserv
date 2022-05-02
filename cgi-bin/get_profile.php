@@ -48,4 +48,9 @@ echo "Content-type: text/html\r\n";
 echo "Content-Length: ", strlen($body), "\r\n";
 echo "\r\n";
 echo $body;
+echo "Status: 200 OK\r\n";
+echo "Content-type:text/html\r\n\r\n";
+echo $_SERVER['QUERY_STRING'];
+echo "\n";
+echo $_SERVER['REQUEST_METHOD'];
 ?>
