@@ -15,20 +15,12 @@ $body .= "</head>\n";
 $body .= "<body>\n";
 
 $body .= "<h1><em>get_textarea</em> CGI program</h1>\n";
-if (strcmp($_SERVER["REQUEST_METHOD"], "GET") == 0)
-	$data = $_SERVER["QUERY_STRING"];
-else
-{
-	fseek(STDIN, 0, SEEK_SET);
-	$data = fread(STDIN, $_SERVER["CONTENT_LENGTH"]);
-}
-parse_str($data, $res);
-if (!isset($res['textcontent']) or strlen($res['textcontent']) == 0)
+if (!isset($_REQUEST['textcontent']))
 	$body .= "<h3>Please leave a comment next time!</h3>\n";
 else
 {
 	$body .= "<h2>You left the following comments:</h2>\n";
-	$body .= ("<h3>" . $res['textcontent'] . "</h3>\n");
+	$body .= ("<h3>" . $_REQUEST['textcontent'] . "</h3>\n");
 }
 
 $body .= "</body>\n";

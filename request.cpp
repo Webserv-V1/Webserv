@@ -15,6 +15,11 @@ bool					request::empty(void) const
 	return (rq.empty());
 }
 
+size_t					request::size(void) const
+{
+	return (rq.size());
+}
+
 bool					request::is_invalid(request::iterator &it)
 {
 	return ((it->first).is_invalid);
@@ -229,16 +234,3 @@ bool					request::set_error(request::iterator &it, int err_no)
 	(it->first).err_no = err_no;
 	return (true);
 }
-
-/*int						request::body_length(std::string msg)
-{
-	size_t	newline_num = 0;
-	size_t	last = 0;
-	size_t	next = 0;
-	while ((next = msg.find("\n", last)) != std::string::npos)
-	{
-		newline_num++;
-		last = next + 1;
-	}
-	return (msg.length() + newline_num); //msg의 실제 길이 + \r 개수
-}*/

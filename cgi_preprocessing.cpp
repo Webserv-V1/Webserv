@@ -69,18 +69,17 @@ std::string		CGI_preprocessing::exec_CGI(void)
 		strcpy(argv[1], env["SCRIPT_FILENAME"].c_str());
 		argv[2] = 0;
 
-		std::cout << "checking env_arr\n";
+		/*std::cout << "checking env_arr\n";
 		for (int i = 0; env_arr[i]; i++)
 		{
 			std::cout << env_arr[i] << std::endl;
-		}
+		}*/
 
 		write(fdin, body.c_str(), body.length());
 		if ((pid = fork()) == -1)
 			throw (fork_error());
 		else if (!pid)
 		{
-			std::cout << argv[1] << std::endl;
 			dup2(fdin, STDIN_FILENO);
 			dup2(fdout, STDOUT_FILENO);
 			execve(env["PATH_INFO"].c_str(), argv, env_arr);

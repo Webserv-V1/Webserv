@@ -47,6 +47,7 @@ public:
 	iterator	rq_begin(void);
 	iterator	rq_end(void);
 	bool		empty(void) const;
+	size_t		size(void) const;
 	bool		is_invalid(iterator &it);
 	int			get_errno(iterator &it);
 	void		print(void);
@@ -64,7 +65,6 @@ public:
 	std::string	corresponding_header_value(iterator &it, std::string header);
 	std::string	get_body(iterator &it);
 	bool		set_error(iterator &it, int err_no);
-	int			body_length(std::string msg);
 };
 
 #endif

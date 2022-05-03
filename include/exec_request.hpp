@@ -64,7 +64,7 @@ class conf_index {
 	}
 };
 
-void    exec_request(config &cf, fd_set &write_fds, request *rq, response *rp, std::map<int, std::string> &m_state_code, std::map<std::string, std::string > &m_mt);
+void    exec_request(config &cf, request *rq, response *rp, std::map<int, std::string> &m_state_code, std::map<std::string, std::string > &m_mt);
 void	make_request(int &state_code, std::string &request_msg, conf_index &cf_i, std::map<int, std::string> &m_state_code, config &cf, std::map<std::string, std::string > &m_mt, request *rq);
 
 

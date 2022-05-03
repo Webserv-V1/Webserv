@@ -1,9 +1,11 @@
 #include "./include/webserv.hpp"
+#include <errno.h>
 
 bool	connect_socket_and_parsing(connection *cn, request *rq, response *rp)
 {
 	struct timeval	timeout;
 	int				fd_num;
+	std::vector<int>	to_move;
 	std::vector<int>	to_connect;
 	std::vector<int>	to_disconnect;
 
@@ -11,7 +13,6 @@ bool	connect_socket_and_parsing(connection *cn, request *rq, response *rp)
 	cn->fdset.cpy_write_fds = cn->fdset.write_fds;
 	timeout.tv_sec = 0; //논블로킹으로 서버 작동해야 하기 때문에 타임제한 0초
 	timeout.tv_usec = 0;
-	//exit(1);
 	if ((fd_num = select((*cn).max_fd() + 1, &(cn->fdset.cpy_read_fds), &(cn->fdset.cpy_write_fds), 0, &timeout)) == -1)
 		throw (select_error());
 	else if (!fd_num)
@@ -26,22 +27,25 @@ bool	connect_socket_and_parsing(connection *cn, request *rq, response *rp)
 			{
 				if (!(*cn).get_client_msg(it->fd, (*rq)))
 					to_disconnect.push_back(it->fd);
+				else
+					to_move.push_back(it->fd);
 			}
 		}
 		if (FD_ISSET(it->fd, &(cn->fdset.cpy_write_fds)))
 		{
-			rp->print();
-			//exit(1);
 			response::iterator rp_it = rp->find_clnt(it->fd);
 			if (send(it->fd, (rp_it->second).c_str(), strlen((rp_it->second).c_str()), 0) < 0)
 				throw (send_error());
 			FD_CLR(it->fd, &(cn->fdset.write_fds));
 			FD_SET(it->fd, &(cn->fdset.read_fds));
 			(*cn).clear_client_msg(it->fd);
+			rp->erase_rp(rp_it);
 			if (!(*cn).check_connection(it->fd, rp_it->second))
 				to_disconnect.push_back(it->fd);
 		}
 	}
+	for (int i = 0; i < (int)to_move.size(); i++)
+		(*cn).move_client(to_move[i]);
 	for (int i = 0; i < (int)to_connect.size(); i++)
 		(*cn).connect_client(to_connect[i]);
 	for (int i = 0; i < (int)to_disconnect.size(); i++)
@@ -151,12 +155,11 @@ void set(std::map<int, std::string> &m_state_code, std::map<std::string, std::st
 
 void	exec_webserv(config &cf)
 {
-	IO_fd_set		fds;
-	connection		cn(cf, fds);
+	connection		cn(cf);
 	request			rq;
 	std::map<int, std::string> m_state_code;
 	std::map<std::string, std::string > m_mt;
-	response		rp(fds.write_fds);
+	response		rp(cn.fdset.write_fds);
 
 	set(m_state_code, m_mt);
 
@@ -164,7 +167,8 @@ void	exec_webserv(config &cf)
 	{
 		if (connect_socket_and_parsing(&cn, &rq, &rp))
 			continue;
-		exec_request(cf, fds.write_fds, &rq, &rp, m_state_code, m_mt);
+		exec_request(cf, &rq, &rp, m_state_code, m_mt);
+		//usleep(1000);
 	}
 }
 

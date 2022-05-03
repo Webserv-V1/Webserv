@@ -15,30 +15,22 @@ $body .= "</head>\n";
 $body .= "<body>\n";
 
 $body .= "<h1><em>get_selection</em> CGI program</h1>\n";
-if (strcmp($_SERVER["REQUEST_METHOD"], "GET") == 0)
-	$data = $_SERVER["QUERY_STRING"];
-else
-{
-	fseek(STDIN, 0, SEEK_SET);
-	$data = fread(STDIN, $_SERVER["CONTENT_LENGTH"]);
-}
-parse_str($data, $res);
 $body .= "<h2>[Result for 'would you rather' question]</h2>\n";
-if (!isset($res["first"]))
+if (!isset($_REQUEST["first"]))
 	$body .= "<h3>You didn't answer the first question.</h3>\n";
-else if (strcmp($res["first"], "1-1") == 0)
+else if (strcmp($_REQUEST["first"], "1-1") == 0)
 	$body .= "<h3>You selected 'Have more time' in first question!</h3>\n";
 else
 	$body .= "<h3>You selected 'Have more money' in first question!</h3>\n";
-if (!isset($res["second"]))
+if (!isset($_REQUEST["second"]))
 	$body .= "<h3>You didn't answer the second question.</h3>\n";
-else if (strcmp($res["second"], "2-1") == 0)
+else if (strcmp($_REQUEST["second"], "2-1") == 0)
 	$body .= "<h3>You selected 'Have many good friends' in second question!</h3>\n";
 else
 	$body .= "<h3>You selected 'Have one very best friend' in second question!</h3>\n";
-if (!isset($res["third"]))
+if (!isset($_REQUEST["third"]))
 	$body .= "<h3>You didn't answer the third question.</h3>\n";
-else if (strcmp($res["third"], "3-1") == 0)
+else if (strcmp($_REQUEST["third"], "3-1") == 0)
 	$body .= "<h3>You selected 'Hear the good news first' in third question!</h3>\n";
 else
 	$body .= "<h3>You selected 'Hear the bad news first' in third question!</h3>\n";
@@ -46,17 +38,17 @@ $body .= "<hr>\n";
 
 $body .= "<h2>[Color of your choice]</h2>\n";
 $color = "";
-if (isset($res['red']))
+if (isset($_REQUEST['red']))
 	$color .= "red ";
-if (isset($res['orange']))
+if (isset($_REQUEST['orange']))
 	$color .= "orange ";
-if (isset($res['yellow']))
+if (isset($_REQUEST['yellow']))
 	$color .= "yellow ";
-if (isset($res['green']))
+if (isset($_REQUEST['green']))
 	$color .= "green ";
-if (isset($res['blue']))
+if (isset($_REQUEST['blue']))
 	$color .= "blue ";
-if (isset($res['purple']))
+if (isset($_REQUEST['purple']))
 	$color .= "purple ";
 if (strlen($color) == 0)
 	$body .= "<h3>You didn't select any color</h3>\n";
@@ -64,12 +56,12 @@ else
 	$body .= ("<h3>" . $color . "</h3>\n");
 
 $body .= "<hr>\n";
-if (!isset($res['dropdown']))
+if (!isset($_REQUEST['dropdown']))
 	$body .= "<h3>You didn't give a rating</h3>\n";
 else
 {
 	$body .= "<h3>You gave me ";
-	$body .= $res['dropdown'];
+	$body .= $_REQUEST['dropdown'];
 	$body .= " stars</h3>\n";
 }
 

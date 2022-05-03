@@ -16,31 +16,20 @@ $body .= "<body>\n";
 
 $body .= "<h1><em>get_name</em> CGI program</h1>\n";
 
-fseek(STDIN, 0, SEEK_SET);
-$body .= ("<p>".$_GET["first_name"]."<p>\n");
-
-if (strcmp($_SERVER["REQUEST_METHOD"], "GET") == 0)
-	$data = $_SERVER["QUERY_STRING"];
-else
-{
-	//fseek(STDIN, 0, SEEK_SET);
-	$data = fread(STDIN, $_SERVER["CONTENT_LENGTH"]);
-}
-parse_str($data, $res);
-if (!isset($res["first_name"]) or strlen($res["first_name"]) == 0)
+if (!isset($_REQUEST["first_name"]))
 	$body .= "<h3>You didn't set the first_name!</h3>\n";
 else
 {
 	$body .= "<h3>Your 'first name' is ";
-	$body .= $res["first_name"];
+	$body .= $_REQUEST["first_name"];
 	$body .= "</h3>\n";
 }
-if (!isset($res["last_name"]) or strlen($res["last_name"]) == 0)
+if (!isset($_REQUEST["last_name"]))
 	$body .= "<h3>You didn't set the last_name!</h3>\n";
 else
 {
 	$body .= "<h3>Your 'last name' is ";
-	$body .= $res["last_name"];
+	$body .= $_REQUEST["last_name"];
 	$body .= "</h3>\n";
 }
 

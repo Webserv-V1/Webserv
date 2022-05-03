@@ -530,16 +530,16 @@ void make_request_msg(int &state_code, std::string &request_msg, conf_index &cf_
 	if(cf_i.cgi_flag == true)
 	{
 		request_msg += CGI_header_and_body; // 주의! : 여기에는 cgi프로그램 출력값과 request_msg합쳐야할듯.
-		std::cout << std::endl;
+		/*std::cout << std::endl;
 		std::cout <<"2\n" <<  request_msg  << "\n2"<< std::endl;
-		std::cout << std::endl;
+		std::cout << std::endl;*/
 	}
 	else 		
 	{
 		request_msg += "\r\n";
-		std::cout << "======== request _ msh ========" << std::endl;
+		//std::cout << "======== request _ msh ========" << std::endl;
 		request_msg += file_data;
-		std::cout << request_msg << std::endl;
+		//std::cout << request_msg << std::endl;
 	}
 }
 
@@ -597,7 +597,7 @@ void make_request_redirect(std::string &request_msg, conf_index &cf_i)
 
 std::string check_firstline (std::string s_CGI, int &state_code)
 {
-	std::cout << "s_CGI: " << s_CGI << "\n";
+	//std::cout << "s_CGI: " << s_CGI << "\n";
 	std::string num_tmp ="";
 	bool flag = true;
 	size_t z = 0;
@@ -658,7 +658,7 @@ void make_request(int &state_code, std::string &request_msg, conf_index &cf_i, s
 	}
 }
 
-void    exec_request(config &cf, fd_set &write_fds, request *rq, response *rp, std::map<int, std::string> &m_state_code, std::map<std::string, std::string > &m_mt)
+void    exec_request(config &cf, request *rq, response *rp, std::map<int, std::string> &m_state_code, std::map<std::string, std::string > &m_mt)
 {
 	while (!rq->empty())
 	{
@@ -667,10 +667,10 @@ void    exec_request(config &cf, fd_set &write_fds, request *rq, response *rp, s
 	    request::iterator it = rq->rq_begin(); //rq 맨 처음에 있는 값에 대해처리
 
 		std::string request_msg = "";
-	    std::cout << "executing method(GET, POST, DELETE)" << std::endl;
+	    //std::cout << "executing method(GET, POST, DELETE)" << std::endl;
 		//=====================입력값 확인.=====================
 
-		rq->print();
+		//rq->print();
 
 		try{
 			if (rq->is_invalid(it))
@@ -683,7 +683,7 @@ void    exec_request(config &cf, fd_set &write_fds, request *rq, response *rp, s
 		catch (int state_code)
 		{
 			make_request(state_code, request_msg, cf_i, m_state_code, cf, m_mt, rq);
-			std::cout << request_msg << std::endl;
+			//std::cout << request_msg << std::endl;
 		}
 		catch (std::exception &e)
 		{
@@ -695,16 +695,8 @@ void    exec_request(config &cf, fd_set &write_fds, request *rq, response *rp, s
 			std::cout << "error 인데 여기는 타면안됨" << std::endl;
 			throw "에러 ... 으로 처리..";
 		}
-		std::cout << "pushing request msg! " << it->first.fd << "\n";
 		rp->push_rp((it->first).fd, request_msg);
-		rp->print();
-		std::cout << "in executing requst " << &(rp->write_fds) << "\n";
-		std::cout << "before setting in exec_request: " << FD_ISSET(it->first.fd , &(rp->write_fds)) << "\n";
-		FD_SET((it->first).fd, &write_fds);
-	    //FD_SET((it->first).fd, &(rp->write_fds)); //해당 fd에 대해 출력할 수 있도록 설정
-		std::cout << "after setting in exec_request: " << FD_ISSET(it->first.fd , &(rp->write_fds)) << "\n";
-		//exit(1);
+		FD_SET((it->first).fd, &(rp->write_fds)); //해당 fd에 대해 출력할 수 있도록 설정
 		rq->erase(it);
-		std::cout << "ending exec_request\n";
 	}
 }
