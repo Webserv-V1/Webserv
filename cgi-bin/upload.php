@@ -48,7 +48,6 @@ if ($_FILES["fileToUpload"]["size"] > 1500000) {
   $uploadOk = 0;
 }
 // Allow certain file formats
-$test_tmp = $_FILES["fileToUpload"]["name"];
 if($imageFileType != "jpg" && $imageFileType != "png" && $imageFileType != "jpeg"
 && $imageFileType != "gif" ) {
   $body .= "<p>Sorry, only JPG, JPEG, PNG & GIF files are allowed.</p>\n";
@@ -57,7 +56,6 @@ if($imageFileType != "jpg" && $imageFileType != "png" && $imageFileType != "jpeg
 }
 
 // Check if $uploadOk is set to 0 by an error
-$test_tmp = $_FILES["fileToUpload"]["tmp_name"];
 if ($uploadOk == 0) {
   $body .= "<p>Sorry, your file was not uploaded.</p>\n";
   //echo "Sorry, your file was not uploaded.";
