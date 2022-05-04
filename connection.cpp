@@ -16,7 +16,7 @@ connection::connection(config &cf) : server_size(0), fd_max(0), fd_arr(), fdset(
 		//2. socket에 IP, Port 번호 할당
 		memset(&serv_adr, 0, sizeof(serv_adr));
 		serv_adr.sin_family = AF_INET;
-		//std::cout << "IP: " << cf.v_s[i].v_listen[1] << ", Port: " << cf.v_s[i].v_listen[0] << std::endl;
+		std::cout << "IP: " << cf.v_s[i].v_listen[1] << ", Port: " << cf.v_s[i].v_listen[0] << std::endl;
 		serv_adr.sin_addr.s_addr = inet_addr(cf.v_s[i].v_listen[1].c_str());
 		int port = convert_to_num(cf.v_s[i].v_listen[0], 10);
 		serv_adr.sin_port = htons(port);
@@ -128,7 +128,7 @@ void					connection::connect_client(int serv_sock)
 	if ((clnt_sock = accept(serv_sock, reinterpret_cast<struct sockaddr*>(&clnt_adr), &adr_sz)) == -1)
 		throw (accept_error());
 	//std::cout << "connecting: serv - " << serv_sock << ", clnt - " << clnt_sock << "\n";
-	//std::cout << "clnt info: IP - " << inet_ntoa(clnt_adr.sin_addr) << ", Port - " << ntohs(clnt_adr.sin_port) << std::endl;
+	std::cout << "clnt info: IP - " << inet_ntoa(clnt_adr.sin_addr) << ", Port - " << ntohs(clnt_adr.sin_port) << std::endl;
 	FD_SET(clnt_sock, &(fdset.read_fds));
 	fcntl(clnt_sock, F_SETFL, O_NONBLOCK); //각 클라이언트 fd를 논블로킹으로 설정
 	iterator it = client_begin();
@@ -175,9 +175,7 @@ bool					connection::get_client_msg(int clnt_sock, request &rq)
 	int		str_len;
 	char	buf[BUF_SIZE + 1];
 
-	if ((str_len = recv(clnt_sock, buf, BUF_SIZE, 0)) < 0)
-		throw (recv_error());
-	if (!str_len)
+	if ((str_len = recv(clnt_sock, buf, BUF_SIZE, 0)) <= 0)
 		return (false);
 	buf[str_len] = '\0';
 	fd_info &clnt_info = info_of_fd(clnt_sock);
@@ -369,21 +367,12 @@ bool					connection::is_content_length_completed(fd_info &clnt_info, request &rq
 	int					length;
 	std::string			body;
 
-	//std::cout << "[is_content_length_completed]\n";
 	try
 	{
 		length = convert_to_num(rq.corresponding_header_value(it, "Content-Length"), 10);
 		body = trim_last_crlf(clnt_info.msg, length);
 		int clnt_length = body.length();
-//		std::cout << "hohohohohohohoohoohohohohohohoohohohohohohhoho " << std::endl;
-//		std::cout << body << std::endl;
-//		std::cout << "hohohohohohohoohoohohohohohohoohohohohohohhoho " << std::endl;
-//
-		std::cout << "clnt_info.msg : " << clnt_info.msg.size() << std::endl;
-		std::cout << "length: " << length << ", clnt length: " << clnt_length << "\n";
-		std::cout << "==========11111111=========" << std::endl;
-		std::cout << body << std::endl;
-		std::cout << "==========2222222=========" << std::endl;
+
 		if (clnt_length < length)
 			return (false);
 		else if (clnt_length > length)

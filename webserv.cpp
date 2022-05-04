@@ -33,13 +33,14 @@ bool	connect_socket_and_parsing(connection *cn, request *rq, response *rp)
 		if (FD_ISSET(it->fd, &(cn->fdset.cpy_write_fds)))
 		{
 			response::iterator rp_it = rp->find_clnt(it->fd);
-			if (send(it->fd, (rp_it->second).c_str(), strlen((rp_it->second).c_str()), 0) < 0)
-				throw (send_error());
+			int	ret;
+			ret = send(it->fd, (rp_it->second).c_str(), strlen((rp_it->second).c_str()), 0);
 			FD_CLR(it->fd, &(cn->fdset.write_fds));
-			FD_SET(it->fd, &(cn->fdset.read_fds));
 			(*cn).clear_client_msg(it->fd);
-			if (!(*cn).check_connection(it->fd, rp_it->second))
+			if (ret <= 0 || !(*cn).check_connection(it->fd, rp_it->second))
 				to_disconnect.push_back(it->fd);
+			else
+				FD_SET(it->fd, &(cn->fdset.read_fds));
 			rp->erase_rp(rp_it);			
 		}
 	}

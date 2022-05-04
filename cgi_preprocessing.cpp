@@ -61,13 +61,8 @@ void CGI_preprocessing::set_env_and_argv(char ***env_arr, char **argv)
 	}
 	std::cout << "checking env_arr end\n";*/
 
-//		argv[0] = new char[env["SCRIPT_NAME"].length() + 1];
-//		strcpy(argv[0], env["SCRIPT_NAME"].c_str());
-//		argv[1] = 0;
-	//std::string cgibin_path = "./cgi-bin/php-cgi"; //./cgi-bin/php-cgi
 	std::string cgibin_path = env["DOCUMENT_ROOT"] + "/cgi-bin/php-cgi";
-	//std::string cgibin_path = "/Users/hoyonglee/goinfre/Webserv/cgi-bin/php-cgi";
-	std::string binfile_path = env["SCRIPT_NAME"];
+	std::string binfile_path = env["PATH_INFO"];
 	argv[0] = new char[cgibin_path.size() + 1];
 	strcpy(argv[0], cgibin_path.c_str());
 	argv[1] = new char[binfile_path.size() + 1];
@@ -129,7 +124,8 @@ std::string		CGI_preprocessing::exec_CGI(void)
 	for (int i = 0; env_arr[i]; i++)
 		delete[] env_arr[i];
 	delete[] env_arr;
-	delete argv[0];
+	delete[] argv[0];
+	delete[] argv[1];
 	fclose(fin);
 	fclose(fout);
 	return (res);

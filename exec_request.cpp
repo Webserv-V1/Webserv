@@ -700,7 +700,7 @@ void    exec_request(config &cf, request *rq, response *rp, std::map<int, std::s
 		}
 		catch (int state_code)
 		{
-			std::cout << "state_code : " <<state_code << std::endl;
+			//std::cout << "state_code : " <<state_code << std::endl;
 			make_request(state_code, request_msg, cf_i, m_state_code, cf, m_mt, rq);
 			//std::cout << request_msg << std::endl;
 		}
