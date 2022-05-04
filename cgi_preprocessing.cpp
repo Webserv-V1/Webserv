@@ -52,17 +52,18 @@ void CGI_preprocessing::set_env_and_argv(char ***env_arr, char **argv)
 		strcpy((*env_arr)[i++], tmp.c_str());
 	}
 	(*env_arr)[i] = 0;
-		std::cout << "checking env_arr start\n";
+		/*std::cout << "checking env_arr sart\n";
 		for (int i = 0; (*env_arr)[i]; i++)
 		{
 			std::cout << (*env_arr)[i] << std::endl;
 		}
-		std::cout << "checking env_arr end\n";
+		std::cout << "checking env_arr end\n";*/
 
 //		argv[0] = new char[env["SCRIPT_NAME"].length() + 1];
 //		strcpy(argv[0], env["SCRIPT_NAME"].c_str());
 //		argv[1] = 0;
-	std::string cgibin_path = "/Users/hoyonglee/goinfre/Webserv/cgi-bin/php-cgi";
+	//std::string cgibin_path = "/Users/hoylee/Downloads/Webserv/cgi-bin/php-cgi";
+	std::string cgibin_path = "./cgi-bin/php-cgi"; //./cgi-bin/php-cgi
 	std::string binfile_path = env["SCRIPT_NAME"];
 	argv[0] = new char[cgibin_path.size() + 1];
 	strcpy(argv[0], cgibin_path.c_str());
@@ -88,7 +89,6 @@ std::string		CGI_preprocessing::exec_CGI(void)
 	try
 	{
 		set_env_and_argv(&env_arr, argv);
-
 		write(fdin, body.c_str(), body.length());
 		lseek(fdin, 0, SEEK_SET); 
 		//설명 : write 쓰고나서 fdin 맨앞으로 커서이동.

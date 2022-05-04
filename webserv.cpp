@@ -172,11 +172,32 @@ void	exec_webserv(config &cf)
 	}
 }
 
-int		main(void)
+std::string confirm_conf_path(int argc, char** argv)
+{
+	if(argc == 1)
+		return (WEBSERV_CONF_PATH);
+	else if(argc == 2)
+	{
+		std::string tmp(argv[1]);
+		if(tmp.size() <= 5)
+			throw (argv_error());
+		else
+		{
+			if(tmp.substr(tmp.size() - 5) != ".conf")
+				throw (argv_error());
+		}
+	}
+	else
+		throw argv_error();
+
+	return(argv[1]);
+}
+
+int		main(int argc, char* argv[])
 {
 	try
 	{
-		config cf(WEBSERV_CONF_PATH);
+		config cf(confirm_conf_path(argc, argv));
 		config_parsing(cf);
 //		print_cf_data(cf); //이걸로 cf출력 볼수 있습니다. 
 		exec_webserv(cf); //나중에 config 받아서~
