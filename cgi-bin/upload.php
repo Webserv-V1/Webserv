@@ -61,6 +61,7 @@ if ($uploadOk == 0) {
   //echo "Sorry, your file was not uploaded.";
   header("Status: 200 Success\r\n");
   //header("Status: 500 Internal Server Error");
+
 // if everything is ok, try to upload file
 } else {
   if (move_uploaded_file($_FILES["fileToUpload"]["tmp_name"], $target_file)) {
@@ -73,6 +74,7 @@ if ($uploadOk == 0) {
     //echo "Sorry, there was an error uploading your file.";
     header("Status: 200 Success\r\n");
     //echo "Status: 500 Internal Server Error";
+
   }
 }
 $body .= "</body>\n";

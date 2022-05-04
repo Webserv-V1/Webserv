@@ -1,7 +1,5 @@
-#include "./include/cgi_preprocessing.hpp"
 #include "./include/exec_request.hpp"
-#include <cstdio>
-class CGI_preprocessing;
+
 std::string make_GMT_time()
 {
 	time_t rawtime;
@@ -602,14 +600,11 @@ void make_request_redirect(std::string &request_msg, conf_index &cf_i)
 
 std::string check_firstline (std::string s_CGI, int &state_code)
 {
+	//std::cout << "s_CGI: " << s_CGI << "\n";
 	std::string num_tmp ="";
 	bool flag = true;
 	size_t z = 0;
 
-	std::cout << "start s_CGI " << std::endl;
-	std::cout << s_CGI << std::endl;
-	std::cout << "end s_CGI " << std::endl;
-	int jump_flag = 0;
 	for(z = 0; z < s_CGI.size(); z++)
 	{
 		if(s_CGI[z] == '\n')
@@ -669,8 +664,8 @@ void make_request(int &state_code, std::string &request_msg, conf_index &cf_i, s
 //			std::cout << " ############# exec_cgi ############## " << std::endl;
 //			std::cout << cgi.exec_CGI() << std::endl;
 //			std::cout << " ############# exec_cgi ############## " << std::endl;
+			//std::cout << "state_code" << state_code << std::endl;
 			CGI_header_and_body = check_firstline (cgi.exec_CGI(), state_code);
-//			std::cout << "first_line_after : " << state_code << std::endl;
 		}
 		request_msg = (std::string)"HTTP/1.1 " + std::to_string(state_code) + " " + m_state_code[state_code] + "\r\n";
 		if(cf_i.autoindex_flag != 1)
@@ -680,21 +675,20 @@ void make_request(int &state_code, std::string &request_msg, conf_index &cf_i, s
 	}
 }
 
-void    exec_request(config &cf, fd_set &write_fds, request *rq, std::string &request_msg, std::map<int, std::string> &m_state_code, std::map<std::string, std::string > &m_mt)
+void    exec_request(config &cf, request *rq, response *rp, std::map<int, std::string> &m_state_code, std::map<std::string, std::string > &m_mt)
 {
-	if (!rq->empty())
+	while (!rq->empty())
 	{
 		//std::cout << "hi2~ " <<std::endl;
 		conf_index	cf_i;
 	    request::iterator it = rq->rq_begin(); //rq 맨 처음에 있는 값에 대해처리
 
-		request_msg = "";
-	    std::cout << "executing method(GET, POST, DELETE)" << std::endl;
+		std::string request_msg = "";
+	    //std::cout << "executing method(GET, POST, DELETE)" << std::endl;
 		//=====================입력값 확인.=====================
 
-		rq->print();
-	 /* if (!rq->is_invalid(it))
-	        rq->print();*/
+		//rq->print();
+
 		try{
 			if (rq->is_invalid(it))
 				throw (rq->get_errno(it));
@@ -707,7 +701,7 @@ void    exec_request(config &cf, fd_set &write_fds, request *rq, std::string &re
 		{
 			std::cout << "state_code : " <<state_code << std::endl;
 			make_request(state_code, request_msg, cf_i, m_state_code, cf, m_mt, rq);
-			std::cout << request_msg << std::endl;
+			//std::cout << request_msg << std::endl;
 		}
 		catch (std::exception &e)
 		{
@@ -719,8 +713,8 @@ void    exec_request(config &cf, fd_set &write_fds, request *rq, std::string &re
 			std::cout << "error 인데 여기는 타면안됨" << std::endl;
 			throw "에러 ... 으로 처리..";
 		}
-	    FD_SET((it->first).fd, &write_fds); //해당 fd에 대해 출력할 수 있도록 설정
+		rp->push_rp((it->first).fd, request_msg);
+		FD_SET((it->first).fd, &(rp->write_fds)); //해당 fd에 대해 출력할 수 있도록 설정
 		rq->erase(it);
-		std::cout << "ending exec_request\n";
 	}
 }

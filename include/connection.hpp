@@ -44,31 +44,54 @@ public:
 	int							status;
 
 	fd_info(int f, server *s) : fd(f), server_info(s), tmp(""), msg(""), split_msg(), status(RQ_LINE_NOT_PARSED) {}
+	fd_info(const fd_info &info)
+	{
+		fd = info.fd;
+		server_info = info.server_info;
+		tmp = info.tmp;
+		msg = info.msg;
+		split_msg = info.split_msg;
+		status = info.status;
+	}
+	fd_info	&operator=(const fd_info &info)
+	{
+		fd = info.fd;
+		server_info = info.server_info;
+		tmp = info.tmp;
+		msg = info.msg;
+		split_msg = info.split_msg;
+		status = info.status;
+		return (*this);
+	}
 };
 
 class connection
 {
 private:
 	int							server_size; //fd_arr에서 서버, 클라이언트 구별 위함
-	std::vector<fd_info>		fd_arr; //서버와 클라이언트 fd 모두 여기에 저장 - 나중에 입출력 검사 위해
-	fd_set						&read_fds;
+	int							fd_max;
+	std::list<fd_info>			fd_arr; //서버와 클라이언트 fd 모두 여기에 저장 - 나중에 입출력 검사 위해
 
 public:
-	typedef std::vector<fd_info>::iterator	iterator;
+	typedef std::list<fd_info>::iterator	iterator;
+	IO_fd_set					fdset;
 
-	connection(config &cf, fd_set &rfds);
+	connection(config &cf);
 	~connection(void);
 	iterator					fd_arr_begin(void);
 	iterator					client_begin(void);
 	iterator					fd_arr_end(void);
 	bool						is_server_socket(int fd);
+	int							cal_max_fd(void);
 	int							max_fd(void);
 	fd_info						&info_of_fd(int fd);
+	void						update_arr(std::vector<int> &to_move, std::vector<int> &to_connect, std::vector<int> &to_disconnect);
 	void						connect_client(int serv_sock);
 	void						disconnect_client(int clnt_sock);
 	bool						check_connection(int clnt_sock, std::string rp);
 	bool						get_client_msg(int clnt_sock, request &rq);
 	void						clear_client_msg(int clnt_sock);
+	void						move_client(int clnt_sock);
 	void						concatenate_client_msg(fd_info &clnt_info, std::string to_append);
 	bool						is_before_body_input(fd_info &clnt_info);
 	bool						is_input_completed(fd_info &clnt_info, request &rq);

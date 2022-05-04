@@ -89,6 +89,11 @@ class	recv_error : public std::exception
   virtual const char	*what(void) const throw() { return ("Unexpected error while executing 'recv' function"); }
 };
 
+class	send_error : public std::exception
+{
+  virtual const char	*what(void) const throw() { return ("Unexpected error while executing 'send' function"); }
+};
+
 class select_error : public std::exception
 {
 	virtual const char	*what(void) const throw() { return ("Unexpected error while executing 'select' function"); }

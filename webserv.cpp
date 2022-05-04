@@ -1,49 +1,57 @@
 #include "./include/webserv.hpp"
-#include "./include/exec_request.hpp"
-#include "./include/parsing.hpp"
-#include "./include/error.hpp"
-#include "./default_conf.hpp"
-#include <time.h>
+#include <errno.h>
 
-bool	connect_socket_and_parsing(IO_fd_set *fds, connection *cn, request *rq, std::string &request_msg)
+bool	connect_socket_and_parsing(connection *cn, request *rq, response *rp)
 {
 	struct timeval	timeout;
 	int				fd_num;
+	std::vector<int>	to_move;
+	std::vector<int>	to_connect;
+	std::vector<int>	to_disconnect;
 
-	(*fds).cpy_read_fds = (*fds).read_fds;
-	(*fds).cpy_write_fds = (*fds).write_fds;
+	cn->fdset.cpy_read_fds = cn->fdset.read_fds;
+	cn->fdset.cpy_write_fds = cn->fdset.write_fds;
 	timeout.tv_sec = 0; //논블로킹으로 서버 작동해야 하기 때문에 타임제한 0초
 	timeout.tv_usec = 0;
-	if ((fd_num = select((*cn).max_fd() + 1, &((*fds).cpy_read_fds), &((*fds).cpy_write_fds), 0, &timeout)) == -1)
+	if ((fd_num = select((*cn).max_fd() + 1, &(cn->fdset.cpy_read_fds), &(cn->fdset.cpy_write_fds), 0, &timeout)) == -1)
 		throw (select_error());
 	else if (!fd_num)
 		return true;
 	for (connection::iterator it = (*cn).fd_arr_begin(); it != (*cn).fd_arr_end(); ++it)
 	{
-		if (FD_ISSET(it->fd, &((*fds).cpy_read_fds)))
+		if (FD_ISSET(it->fd, &(cn->fdset.cpy_read_fds)))
 		{
 			if ((*cn).is_server_socket(it->fd))
-			{
-				(*cn).connect_client(it->fd);
-				break ;
-			}
+				to_connect.push_back(it->fd);
 			else
 			{
 				if (!(*cn).get_client_msg(it->fd, (*rq)))
-					break ;
+					to_disconnect.push_back(it->fd);
+				else
+					to_move.push_back(it->fd);
 			}
 		}
-		if (FD_ISSET(it->fd, &((*fds).cpy_write_fds)))
+		if (FD_ISSET(it->fd, &(cn->fdset.cpy_write_fds)))
 		{
-			std::string rp = request_msg;
-			send(it->fd, rp.c_str(), strlen(rp.c_str()), 0); //recv에 맞춰서 write도 send로 변경
-			FD_CLR(it->fd, &((*fds).write_fds));
-			FD_SET(it->fd, &((*fds).read_fds));
+			response::iterator rp_it = rp->find_clnt(it->fd);
+			if (send(it->fd, (rp_it->second).c_str(), strlen((rp_it->second).c_str()), 0) < 0)
+				throw (send_error());
+			FD_CLR(it->fd, &(cn->fdset.write_fds));
+			FD_SET(it->fd, &(cn->fdset.read_fds));
 			(*cn).clear_client_msg(it->fd);
-			if (!(*cn).check_connection(it->fd, rp))
-				break ;
-			//(*cn).disconnect_client(it->fd); //출력까지 하고 나서 cn 내부에 아직 남아있는 해당 fd 정보를 삭제
+			rp->erase_rp(rp_it);
+			if (!(*cn).check_connection(it->fd, rp_it->second))
+				to_disconnect.push_back(it->fd);
 		}
+	}
+	for (int i = 0; i < (int)to_move.size(); i++)
+		(*cn).move_client(to_move[i]);
+	for (int i = 0; i < (int)to_connect.size(); i++)
+		(*cn).connect_client(to_connect[i]);
+	for (int i = 0; i < (int)to_disconnect.size(); i++)
+	{
+		(*cn).disconnect_client(to_disconnect[i]);
+		FD_CLR(to_disconnect[i], &(cn->fdset.read_fds));
 	}
 	return false;
 }
@@ -147,19 +155,20 @@ void set(std::map<int, std::string> &m_state_code, std::map<std::string, std::st
 
 void	exec_webserv(config &cf)
 {
-	IO_fd_set		fds;
-	connection		cn(cf, fds.read_fds);
+	connection		cn(cf);
 	request			rq;
-	std::string		request_msg;
 	std::map<int, std::string> m_state_code;
 	std::map<std::string, std::string > m_mt;
+	response		rp(cn.fdset.write_fds);
 
 	set(m_state_code, m_mt);
+
 	while (true)
 	{
-		if (connect_socket_and_parsing(&fds, &cn, &rq, request_msg))
+		if (connect_socket_and_parsing(&cn, &rq, &rp))
 			continue;
-		exec_request(cf, fds.write_fds, &rq, request_msg, m_state_code, m_mt);
+		exec_request(cf, &rq, &rp, m_state_code, m_mt);
+		//usleep(1000);
 	}
 }
 
