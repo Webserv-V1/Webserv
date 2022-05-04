@@ -1,5 +1,3 @@
-#!/usr/bin/php
-
 <?php
 $body = "";
 $body .= "<!DOCTYPE html>\n";
@@ -53,7 +51,7 @@ if ($_FILES["fileToUpload"]["size"] > 1500000) {
 $test_tmp = $_FILES["fileToUpload"]["name"];
 if($imageFileType != "jpg" && $imageFileType != "png" && $imageFileType != "jpeg"
 && $imageFileType != "gif" ) {
-  $body .= "<p>!!!!$test_tmp!!!! Sorry, only JPG, JPEG, PNG & GIF files are allowed.</p>\n";
+  $body .= "<p>Sorry, only JPG, JPEG, PNG & GIF files are allowed.</p>\n";
   //echo "Sorry, only JPG, JPEG, PNG & GIF files are allowed.";
   $uploadOk = 0;
 }
@@ -63,25 +61,27 @@ $test_tmp = $_FILES["fileToUpload"]["tmp_name"];
 if ($uploadOk == 0) {
   $body .= "<p>Sorry, your file was not uploaded.</p>\n";
   //echo "Sorry, your file was not uploaded.";
-  echo "Status: 500 Internal Server Error";
+  header("Status: 200 Success\r\n");
+  //header("Status: 500 Internal Server Error");
 // if everything is ok, try to upload file
 } else {
   if (move_uploaded_file($_FILES["fileToUpload"]["tmp_name"], $target_file)) {
     $body .= ("<p>The file ". htmlspecialchars( basename( $_FILES["fileToUpload"]["name"])). " has been uploaded.</p>\n");
     //echo "The file ". htmlspecialchars( basename( $_FILES["fileToUpload"]["name"])). " has been uploaded.";
-    echo "Status: 200 Success\r\n";
+    header("Status: 200 Success\r\n");
 
   } else {
-    $body .= "<p>!!!$test_tmp!!!  Sorry, there was an error uploading your file.</p>\n";
+    $body .= "<p>Sorry, there was an error uploading your file.</p>\n";
     //echo "Sorry, there was an error uploading your file.";
-    echo "Status: 500 Internal Server Error";
+    header("Status: 200 Success\r\n");
+    //echo "Status: 500 Internal Server Error";
   }
 }
 $body .= "</body>\n";
 $body .= "</html>\n";
 
-echo "Content-type: text/html\r\n";
-echo "Content-Length: ", strlen($body), "\r\n";
-echo "\r\n";
-echo $body;
+$b_len = strlen($body);
+//header('Status: 200 Success\r\n');
+header("Content-Length: $b_len\r\n");
+print_r($body);
 ?>

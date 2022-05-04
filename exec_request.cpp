@@ -14,7 +14,12 @@ std::string make_GMT_time()
 	std::string buffer;
 	std::vector<std::string> v_time_tmp;
     while (getline(iss, buffer, ' '))
-        v_time_tmp.push_back(buffer);
+	{
+		if(buffer != "")
+			v_time_tmp.push_back(buffer);
+	}
+	if(v_time_tmp[2].size() == 1)
+		v_time_tmp[2] = "0" + v_time_tmp[2];
 	return (v_time_tmp[0] + ", " + v_time_tmp[2] + " " + v_time_tmp[1] + " " + v_time_tmp[4].substr(0, 4) + " " + v_time_tmp[3] + + " " +"GMT");
 }
 
@@ -386,7 +391,6 @@ void make_folder_list(std::string &path_list, std::string path)
 
 	if( (dir = opendir(path.c_str())) == NULL)
 	{
-		std::cout << "####222222222 : " <<path << " #### "<< std::endl;
 		throw root_and_location_error();
 	}
 	while( (entry = readdir(dir)) != NULL)
@@ -528,7 +532,7 @@ void make_request_msg(int &state_code, std::string &request_msg, conf_index &cf_
 
 	request_msg += "Connection: " + cf_i.Connection + "\r\n";
 	// 주의! : CGI 실행되고 connection 다시한번 확인하기!!
-	request_msg += (std::string)"Date: " + make_GMT_time() + "\r\n";
+	request_msg += (std::string)"date: " + make_GMT_time() + "\r\n";
 	request_msg += "Cache-Control: no-store\r\n";
 	//request_msg += "\r\n";
 	if(cf_i.cgi_flag == true)
@@ -591,7 +595,7 @@ void make_request_redirect(std::string &request_msg, conf_index &cf_i)
 {
 	//request_msg += (std::string)"Content-Type: text/html" + "\r\n"; //리다이렉션은 필요없을듯..
 	request_msg += (std::string)"Connection: keep-alive" + "\r\n";
-	request_msg += (std::string)"Date: " + make_GMT_time() + "\r\n";
+	request_msg += (std::string)"date: " + make_GMT_time() + "\r\n";
 	request_msg += "Cache-Control: no-store\r\n";
 	request_msg += (std::string)"Location: " + cf_i.redirect_path + "\r\n" + "\r\n";
 }
@@ -605,33 +609,45 @@ std::string check_firstline (std::string s_CGI, int &state_code)
 	std::cout << "start s_CGI " << std::endl;
 	std::cout << s_CGI << std::endl;
 	std::cout << "end s_CGI " << std::endl;
+	int jump_flag = 0;
 	for(z = 0; z < s_CGI.size(); z++)
 	{
-		if(s_CGI[z] == ' ' || s_CGI[z] == '	' || s_CGI[z] == '\n')
-			;
+		if(s_CGI[z] == '\n')
+		{
+			if(z != 0 && jump_flag == 0) //설명 : header가 끝나면 종료.
+				break;
+			else 
+				jump_flag = 0;
+		}
 		else
+			jump_flag++;
+		if(jump_flag == 1 && s_CGI.compare(z, 6, "Status") == 0) //설명 : \n뒤에 status가 올때만 작동.
+		{
+			for(size_t i = z; i < s_CGI.size(); i++)
+			{
+				if(s_CGI[i] == '\n')
+				{
+					std::string befor = s_CGI.substr(0, z);
+					std::string after = s_CGI.substr(i + 1);
+					s_CGI = befor + after;
+					break;
+				}
+				if(flag == true && (s_CGI[i] >= '0' && s_CGI[i] <= '9'))
+				{
+					num_tmp += s_CGI[i];
+				}
+				else if(num_tmp != "" && (s_CGI[i] < '0' || s_CGI[i] > '9'))
+				{
+					state_code = stoi(num_tmp);
+
+					flag = false;
+				}
+			}
 			break;
+		}
 	} //upload 고치고 바꾸자. 
 	
-	if(s_CGI.compare(z, 6, "Status") == 0)
-		for(size_t i = z; i < s_CGI.size(); i++)
-		{
-			if(s_CGI[i] == '\n')
-			{
-				s_CGI = s_CGI.substr(i + 1);
-				break;
-			}
-			if(flag == true && (s_CGI[i] >= '0' && s_CGI[i] <= '9'))
-			{
-				num_tmp += s_CGI[i];
-			}
-			else if(num_tmp != "" && (s_CGI[i] < '0' || s_CGI[i] > '9'))
-			{
-				state_code = stoi(num_tmp);
 
-				flag = false;
-			}
-		}
 	return s_CGI;
 }
 

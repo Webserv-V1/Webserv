@@ -1,4 +1,3 @@
-#!/usr/bin/php
 <?php
 $body = "";
 $body .= "<!DOCTYPE html>\n";
@@ -15,42 +14,28 @@ $body .= "</head>\n";
 $body .= "<body>\n";
 
 $body .= "<h1><em>get_profile</em> CGI program</h1>\n";
-if (strcmp($_SERVER["REQUEST_METHOD"], "GET") == 0)
-	$data = $_SERVER["QUERY_STRING"];
-else
-{
-	fseek(STDIN, 0, SEEK_SET);
-	$data = fread(STDIN, $_SERVER["CONTENT_LENGTH"]);
-}
-parse_str($data, $res);
-if (!isset($res["ID"]) or strlen($res["ID"]) == 0)
+if (!isset($_REQUEST["ID"]))
 	$body .= "<h3>You didn't set the ID!</h3>\n";
 else
 {
 	$body .= "<h3>Your 'ID' is ";
-	$body .= $res["ID"];
+	$body .= $_REQUEST["ID"];
 	$body .= "</h3>\n";
 }
-if (!isset($res["PW"]) or strlen($res["PW"]) == 0)
+if (!isset($_REQUEST["PW"]))
 	$body .= "<h3>You didn't set the PW!</h3>\n";
 else
 {
 	$body .= "<h3>Your 'PW' is ";
-	$body .= $res["PW"];
+	$body .= $_REQUEST["PW"];
 	$body .= "</h3>\n";
 }
 
 $body .= "</body>\n";
 $body .= "</html>\n";
 
-echo "Status: 200 Success\r\n";
-echo "Content-type: text/html\r\n";
-echo "Content-Length: ", strlen($body), "\r\n";
-echo "\r\n";
-echo $body;
-echo "Status: 200 OK\r\n";
-echo "Content-type:text/html\r\n\r\n";
-echo $_SERVER['QUERY_STRING'];
-echo "\n";
-echo $_SERVER['REQUEST_METHOD'];
+$b_len = strlen($body);
+header('Status: 200 Success\r\n');
+header("Content-Length: $b_len\r\n");
+print_r($body);
 ?>

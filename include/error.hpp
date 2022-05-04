@@ -1,6 +1,10 @@
 #ifndef __ERROR_HPP__
 #define __ERROR_HPP__
 
+struct argv_error : std::exception {
+  const char* what() const throw() {return "You can specify a .conf path or run it without parameters.";}
+};
+
 struct open_fail : std::exception {
   const char* what() const throw() {return "config file is not open!";}
 };
