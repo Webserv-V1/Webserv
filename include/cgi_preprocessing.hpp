@@ -23,7 +23,9 @@ public:
 	typedef std::map<std::string, std::string>::iterator	env_iterator;
 
 	CGI_preprocessing(request &rq, conf_index &cf_i);
+
 	~CGI_preprocessing();
+	void		set_env_and_argv(char ***env_arr, char **argv);
 	std::string	exec_CGI(void);
 };
 

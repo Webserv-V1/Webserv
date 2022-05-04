@@ -375,7 +375,15 @@ bool					connection::is_content_length_completed(fd_info &clnt_info, request &rq
 		length = convert_to_num(rq.corresponding_header_value(it, "Content-Length"), 10);
 		body = trim_last_crlf(clnt_info.msg, length);
 		int clnt_length = body.length();
+//		std::cout << "hohohohohohohoohoohohohohohohoohohohohohohhoho " << std::endl;
+//		std::cout << body << std::endl;
+//		std::cout << "hohohohohohohoohoohohohohohohoohohohohohohhoho " << std::endl;
+//
+		std::cout << "clnt_info.msg : " << clnt_info.msg.size() << std::endl;
 		std::cout << "length: " << length << ", clnt length: " << clnt_length << "\n";
+		std::cout << "==========11111111=========" << std::endl;
+		std::cout << body << std::endl;
+		std::cout << "==========2222222=========" << std::endl;
 		if (clnt_length < length)
 			return (false);
 		else if (clnt_length > length)

@@ -41,48 +41,65 @@ CGI_preprocessing::~CGI_preprocessing()
 {
 	env.clear();
 }
+void CGI_preprocessing::set_env_and_argv(char ***env_arr, char **argv)
+{
+	(*env_arr) = new char*[env.size() + 1];
+	int i = 0;
+	for (env_iterator it = env.begin(); it != env.end(); ++it)
+	{
+		std::string	tmp = it->first + "=" + it->second;
+		(*env_arr)[i] = new char[tmp.length() + 1];
+		strcpy((*env_arr)[i++], tmp.c_str());
+	}
+	(*env_arr)[i] = 0;
+		std::cout << "checking env_arr start\n";
+		for (int i = 0; (*env_arr)[i]; i++)
+		{
+			std::cout << (*env_arr)[i] << std::endl;
+		}
+		std::cout << "checking env_arr end\n";
 
+//		argv[0] = new char[env["SCRIPT_NAME"].length() + 1];
+//		strcpy(argv[0], env["SCRIPT_NAME"].c_str());
+//		argv[1] = 0;
+	std::string cgibin_path = "/Users/hoyonglee/goinfre/Webserv/cgi-bin/php-cgi";
+	std::string binfile_path = env["SCRIPT_NAME"];
+	argv[0] = new char[cgibin_path.size() + 1];
+	strcpy(argv[0], cgibin_path.c_str());
+	argv[1] = new char[binfile_path.size() + 1];
+	strcpy(argv[1], binfile_path.c_str());
+	argv[2] = 0;
+
+//		std::cout << "cgibin_path : " << cgibin_path << std::endl;
+//		std::cout << "argv 1,[0] : " << argv[0] << std::endl;
+//		std::cout << "argv 1,[1] : " << argv[1] << std::endl;
+}
 std::string		CGI_preprocessing::exec_CGI(void)
 {
 	char		**env_arr;
 	char		*argv[3];
 	pid_t		pid;
 	std::string	res = "";
-	FILE		*fin = tmpfile();
-	FILE		*fout = tmpfile();
-	int			fdin = fileno(fin);
+	FILE		*fin = tmpfile(); //설명 : 임시파일 만듬.
+	FILE		*fout = tmpfile(); // 설명 : 임시파일 만듬.
+	int			fdin = fileno(fin); // 설명 : 임시파일의 fn을 fdin에 넣음.
 	int			fdout = fileno(fout);
+
 	try
 	{
-		env_arr = new char*[env.size() + 1];
-		int i = 0;
-		for (env_iterator it = env.begin(); it != env.end(); ++it)
-		{
-			std::string	tmp = it->first + "=" + it->second;
-			env_arr[i] = new char[tmp.length() + 1];
-			strcpy(env_arr[i++], tmp.c_str());
-		}
-		env_arr[i] = 0;
-		argv[0] = new char[env["PATH_INFO"].length() + 1];
-		argv[1] = new char[env["SCRIPT_FILENAME"].length() + 1];
-		strcpy(argv[0], env["PATH_INFO"].c_str());
-		strcpy(argv[1], env["SCRIPT_FILENAME"].c_str());
-		argv[2] = 0;
-
-		/*std::cout << "checking env_arr\n";
-		for (int i = 0; env_arr[i]; i++)
-		{
-			std::cout << env_arr[i] << std::endl;
-		}*/
+		set_env_and_argv(&env_arr, argv);
 
 		write(fdin, body.c_str(), body.length());
+		lseek(fdin, 0, SEEK_SET); 
+		//설명 : write 쓰고나서 fdin 맨앞으로 커서이동.
+
 		if ((pid = fork()) == -1)
 			throw (fork_error());
-		else if (!pid)
+		else if (!pid) //자식은 여기 탑니다.
 		{
 			dup2(fdin, STDIN_FILENO);
 			dup2(fdout, STDOUT_FILENO);
-			execve(env["PATH_INFO"].c_str(), argv, env_arr);
+			execve(argv[0], argv, env_arr);
 			write(STDOUT_FILENO, "Status: 500 Internal Server Error\r\n\r\n", 37);
 			exit(1);
 		}
@@ -91,7 +108,6 @@ std::string		CGI_preprocessing::exec_CGI(void)
 		waitpid(pid, &status, 0);
 		if (WIFEXITED(status))
 			status = WEXITSTATUS(status);
-
 		lseek(fdout, 0, SEEK_SET);
 		int len;
 		char buf[BUF_SIZE + 1];

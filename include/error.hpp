@@ -26,27 +26,31 @@ struct err_input_listen : std::exception {
 };
 
 struct config_error_location : std::exception {
-  const char* what() const throw() {return "configfile server not have location";}
+  const char* what() const throw() {return "configfile wrong data : server not have location";}
 };
 
 struct config_error_server : std::exception {
-  const char* what() const throw() {return "configfile don't have server";}
+  const char* what() const throw() {return "configfile wrong data : don't have server";}
 };
 struct config_error_root : std::exception {
-  const char* what() const throw() {return "configfile don't have root";}
+  const char* what() const throw() {return "configfile wrong data : don't have root";}
 };
 
 struct config_error_allow_methods : std::exception {
-  const char* what() const throw() {return "configfile wrong data for allow_methods";}
+  const char* what() const throw() {return "configfile wrong data : allow_methods";}
 };
 struct config_error_error_page : std::exception {
-  const char* what() const throw() {return "configfile wrong data for error_page";}
+  const char* what() const throw() {return "configfile wrong data : error_page";}
 };
 struct config_error_client_max : std::exception {
-  const char* what() const throw() {return "configfile wrong data for client_max_body_size";}
+  const char* what() const throw() {return "configfile wrong data : client_max_body_size";}
 };
 struct config_error_return : std::exception {
-  const char* what() const throw() {return "configfile wrong data for return\nreturn 번호 : 영구(301, 308), 임시(302, 303, 307, 308)";}
+  const char* what() const throw() {return "configfile wrong data : return 번호 : 영구(301, 308), 임시(302, 303, 307, 308)";}
+};
+
+struct config_error_same_port : std::exception {
+  const char* what() const throw() {return "configfile wrong data : It contains the same port number.";}
 };
 
 struct root_and_location_error : std::exception {

@@ -394,13 +394,17 @@ void last_check(config &cf)
 {
 	if(cf.v_s.size() == 0)
 	{
-		std::cout << "이거 안탈거아ㅇ냐? " << std::endl;
 		throw config_error_server();
 	}
 	for(int i = 0; i < (int)cf.v_s.size(); i++)
 	{
 		if(cf.v_s[i].location_path.size() == 0)
 			throw config_error_location();
+		for(int j = 0; j < i; j++) //중복되는 포트 있는지 검사. 
+		{
+			if(cf.v_s[i].v_listen[0] == cf.v_s[j].v_listen[0])
+				throw config_error_same_port();
+		}
 		for(int j = 0; j < (int)cf.v_s[i].v_error_page.size(); j++)
 		{
 			for(int z = 0; z < (int)cf.v_s[i].v_error_page[j].second.size() - 1; z++)
@@ -427,7 +431,6 @@ void config_parsing(config &cf)
 	}
 	else
 	{
-		std::cout << "11" << std::endl;
 		throw open_fail();
 	}
 	last_check(cf);

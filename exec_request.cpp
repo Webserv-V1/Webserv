@@ -46,6 +46,8 @@ void exec_method(config &cf, request::iterator rq_iter, conf_index &cf_i)
 		}
 		else if(rq_iter->first.method == "DELETE")
 		{
+			if(flag == 1)
+				throw 405;
 			if(cf_i.url_folder_flag == true)
 				throw 409;
 			throw 204;
@@ -472,7 +474,7 @@ void open_file_data(std::string &file_data, std::string &c_open_file)
 	}
 	else
 	{
-		std::cout << "앞서 다 확인했지만, 혹시!??" <<std::endl;
+		std::cout << "앞서 다 확인했지만, 혹시!?? : file_name : " << c_open_file  <<std::endl;
 		throw open_fail();
 	}
 }
@@ -530,9 +532,6 @@ void make_request_msg(int &state_code, std::string &request_msg, conf_index &cf_
 	if(cf_i.cgi_flag == true)
 	{
 		request_msg += CGI_header_and_body; // 주의! : 여기에는 cgi프로그램 출력값과 request_msg합쳐야할듯.
-		/*std::cout << std::endl;
-		std::cout <<"2\n" <<  request_msg  << "\n2"<< std::endl;
-		std::cout << std::endl;*/
 	}
 	else 		
 	{
@@ -607,24 +606,27 @@ std::string check_firstline (std::string s_CGI, int &state_code)
 			;
 		else
 			break;
-	}
-	for(size_t i = z; i < s_CGI.size(); i++)
-	{
-		if(s_CGI[i] == '\n')
+	} //upload 고치고 바꾸자. 
+	
+	if(s_CGI.compare(z, 6, "Status") == 0)
+		for(size_t i = z; i < s_CGI.size(); i++)
 		{
-			s_CGI = s_CGI.substr(i + 1);
-			break;
+			if(s_CGI[i] == '\n')
+			{
+				s_CGI = s_CGI.substr(i + 1);
+				break;
+			}
+			if(flag == true && (s_CGI[i] >= '0' && s_CGI[i] <= '9'))
+			{
+				num_tmp += s_CGI[i];
+			}
+			else if(num_tmp != "" && (s_CGI[i] < '0' || s_CGI[i] > '9'))
+			{
+				state_code = stoi(num_tmp);
+
+				flag = false;
+			}
 		}
-		if(flag == true && (s_CGI[i] >= '0' && s_CGI[i] <= '9'))
-		{
-			num_tmp += s_CGI[i];
-		}
-		else if(num_tmp != "" && (s_CGI[i] < '0' || s_CGI[i] > '9'))
-		{
-			state_code = stoi(num_tmp);
-			flag = false;
-		}
-	}
 	return s_CGI;
 }
 
@@ -648,7 +650,6 @@ void make_request(int &state_code, std::string &request_msg, conf_index &cf_i, s
 //			std::cout << " ############# exec_cgi ############## " << std::endl;
 			//std::cout << "state_code" << state_code << std::endl;
 			CGI_header_and_body = check_firstline (cgi.exec_CGI(), state_code);
-			//std::cout << "state_code" << state_code << std::endl;
 		}
 		request_msg = (std::string)"HTTP/1.1 " + std::to_string(state_code) + " " + m_state_code[state_code] + "\r\n";
 		if(cf_i.autoindex_flag != 1)
@@ -682,6 +683,7 @@ void    exec_request(config &cf, request *rq, response *rp, std::map<int, std::s
 		}
 		catch (int state_code)
 		{
+			std::cout << "state_code : " <<state_code << std::endl;
 			make_request(state_code, request_msg, cf_i, m_state_code, cf, m_mt, rq);
 			//std::cout << request_msg << std::endl;
 		}
