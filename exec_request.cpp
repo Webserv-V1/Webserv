@@ -604,6 +604,7 @@ std::string check_firstline (std::string s_CGI, int &state_code)
 	std::string num_tmp ="";
 	bool flag = true;
 	size_t z = 0;
+	size_t jump_flag = 0;
 
 	for(z = 0; z < s_CGI.size(); z++)
 	{

@@ -14,7 +14,7 @@ $body .= "</head>\n";
 $body .= "<body>\n";
 
 $body .= "<h1><em>get_textarea</em> CGI program</h1>\n";
-if (!isset($_REQUEST['textcontent']))
+if (!isset($_REQUEST['textcontent']) or strlen($_REQUEST['textcontent']) == 0)
 	$body .= "<h3>Please leave a comment next time!</h3>\n";
 else
 {

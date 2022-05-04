@@ -402,7 +402,7 @@ bool					connection::is_multipart_completed(fd_info &clnt_info, request &rq)
 	std::string		type = rq.corresponding_header_value(it, "Content-Type");
 	size_t			idx = type.find("boundary=") + ((std::string)"boundary=").length();
 	std::string		boundary = type.substr(idx);
-	std::cout << "boundary: " << boundary << std::endl;
+	//std::cout << "boundary: " << boundary << std::endl;
 	boundary += "--";
 	if (clnt_info.msg.rfind(boundary) != std::string::npos)
 		return (completed_input(rq, it, clnt_info.msg, -1));
