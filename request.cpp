@@ -15,6 +15,11 @@ bool					request::empty(void) const
 	return (rq.empty());
 }
 
+size_t					request::size(void) const
+{
+	return (rq.size());
+}
+
 bool					request::is_invalid(request::iterator &it)
 {
 	return ((it->first).is_invalid);
@@ -93,7 +98,7 @@ request::iterator		request::insert_rq_line(int clnt_fd, server *server_info, std
 		last = next + 1;
 	}
 	tmp_rq.push_back(std::make_pair(first, second_type()));
-	request::iterator	it = tmp_rq.end() - 1;
+	request::iterator	it = --tmp_rq.end();
 	if (check_info_invalid(first))
 		set_error(it, 400);
 	return (it);
@@ -120,7 +125,7 @@ request::iterator		request::insert_header(iterator &it, std::vector<std::string>
 	}
 	if (check_header_invalid(it->second))
 		set_error(it, 400);
-	return (tmp_rq.end() - 1);
+	return (--tmp_rq.end());
 }
 
 request::iterator		request::insert(request::iterator &it, std::string msg_body)
@@ -128,7 +133,7 @@ request::iterator		request::insert(request::iterator &it, std::string msg_body)
 	(it->second).insert(std::make_pair("", msg_body));
 	rq.insert(rq.end(), *it);
 	tmp_rq.erase(it);
-	return (rq.end() - 1);
+	return (--rq.end());
 }
 
 void					request::erase(request::iterator &it)
@@ -229,16 +234,3 @@ bool					request::set_error(request::iterator &it, int err_no)
 	(it->first).err_no = err_no;
 	return (true);
 }
-
-/*int						request::body_length(std::string msg)
-{
-	size_t	newline_num = 0;
-	size_t	last = 0;
-	size_t	next = 0;
-	while ((next = msg.find("\n", last)) != std::string::npos)
-	{
-		newline_num++;
-		last = next + 1;
-	}
-	return (msg.length() + newline_num); //msg의 실제 길이 + \r 개수
-}*/

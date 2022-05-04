@@ -61,7 +61,7 @@ if($imageFileType != "jpg" && $imageFileType != "png" && $imageFileType != "jpeg
 if ($uploadOk == 0) {
   $body .= "<p>Sorry, your file was not uploaded.</p>\n";
   //echo "Sorry, your file was not uploaded.";
-  echo "Status: 500 Internal Server Error";
+  echo "Status: 500 Internal Server Error\r\n";
 // if everything is ok, try to upload file
 } else {
   if (move_uploaded_file($_FILES["fileToUpload"]["tmp_name"], $target_file)) {
@@ -72,7 +72,7 @@ if ($uploadOk == 0) {
   } else {
     $body .= "<p>Sorry, there was an error uploading your file.</p>\n";
     //echo "Sorry, there was an error uploading your file.";
-    echo "Status: 500 Internal Server Error";
+    echo "Status: 500 Internal Server Error\r\n";
   }
 }
 $body .= "</body>\n";
