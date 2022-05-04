@@ -1,4 +1,3 @@
-#!/usr/bin/php
 <?php
 $body = "";
 $body .= "<!DOCTYPE html>\n";
@@ -36,9 +35,8 @@ else
 $body .= "</body>\n";
 $body .= "</html>\n";
 
-echo "Status: 200 Success\r\n";
-echo "Content-type: text/html\r\n";
-echo "Content-Length: ", strlen($body), "\r\n";
-echo "\r\n";
-echo $body;
+$b_len = strlen($body);
+header('Status: 200 Success\r\n');
+header("Content-Length: $b_len\r\n");
+print_r($body);
 ?>

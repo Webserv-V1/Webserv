@@ -1,5 +1,4 @@
 #include "./include/webserv.hpp"
-#include <errno.h>
 
 bool	connect_socket_and_parsing(connection *cn, request *rq, response *rp)
 {
@@ -39,20 +38,12 @@ bool	connect_socket_and_parsing(connection *cn, request *rq, response *rp)
 			FD_CLR(it->fd, &(cn->fdset.write_fds));
 			FD_SET(it->fd, &(cn->fdset.read_fds));
 			(*cn).clear_client_msg(it->fd);
-			rp->erase_rp(rp_it);
 			if (!(*cn).check_connection(it->fd, rp_it->second))
 				to_disconnect.push_back(it->fd);
+			rp->erase_rp(rp_it);			
 		}
 	}
-	for (int i = 0; i < (int)to_move.size(); i++)
-		(*cn).move_client(to_move[i]);
-	for (int i = 0; i < (int)to_connect.size(); i++)
-		(*cn).connect_client(to_connect[i]);
-	for (int i = 0; i < (int)to_disconnect.size(); i++)
-	{
-		(*cn).disconnect_client(to_disconnect[i]);
-		FD_CLR(to_disconnect[i], &(cn->fdset.read_fds));
-	}
+	(*cn).update_arr(to_move, to_connect, to_disconnect);
 	return false;
 }
 
@@ -168,7 +159,7 @@ void	exec_webserv(config &cf)
 		if (connect_socket_and_parsing(&cn, &rq, &rp))
 			continue;
 		exec_request(cf, &rq, &rp, m_state_code, m_mt);
-		//usleep(1000);
+		usleep(1000);
 	}
 }
 

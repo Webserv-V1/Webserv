@@ -17,21 +17,21 @@ CGI_preprocessing::CGI_preprocessing(request &rq, conf_index &cf_i)
 	env["CONTENT_TYPE"] = rq.corresponding_header_value(it, "CONTENT-TYPE");
 	if (env["CONTENT_TYPE"].empty())
 		env["CONTENT_TYPE"] = "text/html";
-	/*std::stringstream stream;
-	stream << body.length();
-	std::string len_to_string;
-	stream >> len_to_string;*/
 	env["CONTENT_LENGTH"] = rq.corresponding_header_value(it, "CONTENT-LENGTH");
-	//env["CONTENT_LENGTH"] = len_to_string;
+	if (env["CONTENT_LENGTH"].empty())
+	{
+		std::stringstream stream;
+		stream << body.length();
+		std::string len_to_string;
+		stream >> len_to_string;
+		env["CONTENT_LENGTH"] = len_to_string;
+	}
 	env["QUERY_STRING"] = cf_i.query_string; //나중에 쿼리 스트링으로 수정
-	//env["REMOTE_ADDR"] = rq.corresponding_header_value(it, "HOST");
-	env["SERVER_NAME"] = "0.0.0.0";
-	//env["SERVER_NAME"] = it->first.server_info->v_listen[1];
+	env["SERVER_NAME"] = it->first.server_info->v_listen[1];
 	env["SERVER_PORT"] = it->first.server_info->v_listen[0];
 	env["SERVER_PROTOCOL"] = "HTTP/1.1";
 	env["SERVER_SOFTWARE"] = "Webserv/1.0";
-	env["HTTP_HOST"] = "0.0.0.0" + it->first.server_info->v_listen[0];
-	//env["HTTP_HOST"] = it->first.server_info->v_listen[1];
+	env["HTTP_HOST"] = rq.corresponding_header_value(it, "Host");
 	env["HTTP_USER_AGENT"] = rq.corresponding_header_value(it, "User-Agent");
 	env["HTTP_ACCEPT_LANGUAGE"] = rq.corresponding_header_value(it, "Accept-Language");
 	env["HTTP_ACCEPT_ENCODING"] = rq.corresponding_header_value(it, "Accept-Encoding");
@@ -41,6 +41,7 @@ CGI_preprocessing::~CGI_preprocessing()
 {
 	env.clear();
 }
+
 void CGI_preprocessing::set_env_and_argv(char ***env_arr, char **argv)
 {
 	(*env_arr) = new char*[env.size() + 1];
@@ -52,18 +53,20 @@ void CGI_preprocessing::set_env_and_argv(char ***env_arr, char **argv)
 		strcpy((*env_arr)[i++], tmp.c_str());
 	}
 	(*env_arr)[i] = 0;
-		/*std::cout << "checking env_arr sart\n";
-		for (int i = 0; (*env_arr)[i]; i++)
-		{
-			std::cout << (*env_arr)[i] << std::endl;
-		}
-		std::cout << "checking env_arr end\n";*/
+
+	/*std::cout << "checking env_arr sart\n";
+	for (int i = 0; (*env_arr)[i]; i++)
+	{
+		std::cout << (*env_arr)[i] << std::endl;
+	}
+	std::cout << "checking env_arr end\n";*/
 
 //		argv[0] = new char[env["SCRIPT_NAME"].length() + 1];
 //		strcpy(argv[0], env["SCRIPT_NAME"].c_str());
 //		argv[1] = 0;
-	//std::string cgibin_path = "/Users/hoylee/Downloads/Webserv/cgi-bin/php-cgi";
-	std::string cgibin_path = "./cgi-bin/php-cgi"; //./cgi-bin/php-cgi
+	//std::string cgibin_path = "./cgi-bin/php-cgi"; //./cgi-bin/php-cgi
+	std::string cgibin_path = env["DOCUMENT_ROOT"] + "/cgi-bin/php-cgi";
+	//std::string cgibin_path = "/Users/hoyonglee/goinfre/Webserv/cgi-bin/php-cgi";
 	std::string binfile_path = env["SCRIPT_NAME"];
 	argv[0] = new char[cgibin_path.size() + 1];
 	strcpy(argv[0], cgibin_path.c_str());
