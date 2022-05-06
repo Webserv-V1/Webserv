@@ -184,12 +184,38 @@ void find_cf_server_i(config &cf, request::value_type &fd_data, conf_index &cf_i
 			cf_i.server = i;
 			break;
 		}
+		if(cf.v_s[i].listen.substr(0, fd_data.second["host"].size()) == fd_data.second["host"])
+		{
+			//설명 : http::localhost 이렇게 접속했을때 80포트로 접속시켜준다. 
+			std::string tmp_port = "";
+			for(size_t y = fd_data.second["host"].size(); y < cf.v_s[i].listen.size(); y++)
+				tmp_port += cf.v_s[i].listen[y];
+			if(tmp_port == ":80")
+			{
+				cf_i.server = i;
+				break;
+			}
+		}
+		size_t v_s_i = 0;
+		for(v_s_i = 0; v_s_i < cf.v_s[i].v_server_name.size(); v_s_i++)
+		{
+			if(cf.v_s[i].v_server_name[v_s_i] + ":" + cf.v_s[i].v_listen[0] == fd_data.second["host"])
+			{
+				cf_i.server = i;
+				break;
+			}
+			else if(cf.v_s[i].v_listen[0] == "80" && fd_data.second["host"] == cf.v_s[i].v_server_name[v_s_i])
+			{
+				cf_i.server = i;
+				break;
+			}
+		}
+		if(v_s_i != cf.v_s[i].v_server_name.size())
+			break;
 		if(i + 1 == (int)cf.v_s.size())
 		{
 			cf_i.server = 0;
-			std::cout << "cf.v_s[i].listen : " << cf.v_s[i].listen <<std::endl;
-			std::cout << "fd_data.second[\"Host\"]" << fd_data.second["Host"] << std::endl;
-			std::cout << "에러처리찾기 : error server가 없으므로 에러 뛰워야함." << std::endl;
+			std::cout << "설명 : 일치하는 서버가 없을때, 첫번째 서버로 지정함." << std::endl;
 			break;
 			// 일치하는 Host없으면 첫번째 server가 디폴트 server임.
 			//throw 404;

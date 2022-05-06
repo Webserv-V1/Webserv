@@ -46,6 +46,7 @@ public :
 	std::vector<std::string>	v_listen; //[0] 포트 [1 ~ 4] ip
 	std::vector< std::pair<int, std::vector<std::string> > > v_error_page;
 	std::vector<std::string>	location_path;
+	std::vector<std::string>	v_server_name;
 
 	server(void)
 	{
@@ -74,7 +75,7 @@ public :
 		server_flag = 0;
 		bracket = 0;
 		file_name = _file_name;
-		std::string s_invalid_key[] = {"location", "listen", "error_page"};
+		std::string s_invalid_key[] = {"location", "listen", "error_page", "server_name"};
 		std::string l_invalid_key[] = { "error_page", "allow_methods", \
 				"client_max_body_size", "root", "index", "auto_index", \
 				"server_max_body_size", "auth_key", "client_body_buffer_size", "upload_path", "return"};

@@ -82,7 +82,7 @@ void input_listen(config &cf, std::string &save_data, const int &input_data_cnt)
 
 void value_check(int input_flag, std::string save_data)
 {
-	if(input_flag == 4) //allow_methods
+	if(input_flag == 5) //allow_methods
 	{
 		 if((save_data) != "GET" && (save_data) != "POST" && (save_data) != "DELETE")
 			 throw config_error_allow_methods();
@@ -105,13 +105,17 @@ void input_data(config &cf, std::string &save_data, int &input_flag, std::string
 			else
 				cf.v_s[cf.server_i].v_error_page[cf.v_s[cf.server_i].v_error_page.size() - 1].second.push_back(save_data);
 		}
-		else if(input_flag > 2)
+		else if(input_flag == 3)
+		{
+			cf.v_s[cf.server_i].v_server_name.push_back(save_data);
+		}
+		else if(input_flag > 3)
 		{
 			value_check(input_flag, save_data);
-			if(input_data_cnt == (int)cf.v_s[cf.server_i].v_l[cf.v_s[cf.server_i].location_i].m_location[cf.v_location_invalid_key[input_flag - 3]].size())
-				cf.v_s[cf.server_i].v_l[cf.v_s[cf.server_i].location_i].m_location[cf.v_location_invalid_key[input_flag - 3]].push_back(save_data);
+			if(input_data_cnt == (int)cf.v_s[cf.server_i].v_l[cf.v_s[cf.server_i].location_i].m_location[cf.v_location_invalid_key[input_flag - 4]].size())
+				cf.v_s[cf.server_i].v_l[cf.v_s[cf.server_i].location_i].m_location[cf.v_location_invalid_key[input_flag - 4]].push_back(save_data);
 			else
-				cf.v_s[cf.server_i].v_l[cf.v_s[cf.server_i].location_i].m_location[cf.v_location_invalid_key[input_flag - 3]][input_data_cnt] = (save_data);
+				cf.v_s[cf.server_i].v_l[cf.v_s[cf.server_i].location_i].m_location[cf.v_location_invalid_key[input_flag - 4]][input_data_cnt] = (save_data);
 
 		}
 		save_data = "";
@@ -287,7 +291,7 @@ void check_first_char(config &cf, int &input_flag, std::string &readLine, int &i
 			throw wrong_configfile_data_2();
 		}
 		i = i + (cf.v_location_invalid_key[key_i].size() - 1);
-		input_flag = key_i + 3;
+		input_flag = key_i + 4;
 	}
 	input_data_cnt = 0;
 }
