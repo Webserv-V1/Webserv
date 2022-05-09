@@ -1,5 +1,5 @@
-#include "./include/parsing.hpp"
-#include "./include/error.hpp"
+#include "../include/parsing.hpp"
+#include "../include/error.hpp"
 
 void check_invalid(std::string &readLine, std::string com, int i)
 {

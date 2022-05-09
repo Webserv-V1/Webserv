@@ -1,4 +1,4 @@
-#include "./include/webserv.hpp"
+#include "../include/webserv.hpp"
 
 bool	connect_socket_and_parsing(connection *cn, request *rq, response *rp)
 {

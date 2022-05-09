@@ -3,11 +3,13 @@ RM				= rm -f
 CXXFLAGS		= -Wall -Wextra -Werror -std=c++98
 NAME			= webserv
 
-SRCS			= webserv.cpp parsing.cpp connection.cpp exec_request.cpp request.cpp cgi_preprocessing.cpp
+SRCS			= srcs/webserv.cpp srcs/parsing.cpp srcs/connection.cpp srcs/exec_request.cpp srcs/request.cpp srcs/cgi_preprocessing.cpp
+#OBJS_DIR		= objs
 
-OBJS_DIR		= objs
+OBJ_DIR     = objs
+OBJS         	= $(SRCS:$(SRC_DIR)/%.cpp=$(OBJ_DIR)/%.o)
 
-OBJS			= $(SRCS:%.cpp=$(OBJS_DIR)/%.o)
+#OBJS			= $(SRCS:%.cpp=$(OBJS_DIR)/%.o)
 
 $(OBJS_DIR)/%.o:%.cpp
 				@mkdir -p $(OBJS_DIR)
