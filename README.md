@@ -12,7 +12,7 @@
 * ./default_conf.hpp 파일을 이용해 설정 파일 및 메크로를 바꿀 수 있습니다. 
 
 ### 1-4. 프로젝트 구현 명세서
-* [여기](https://github.com/hey-chocopie/tmp.git) 프로젝트에서 구현한 내용들을 확인할 수 있습니다. 
+* [여기](https://github.com/Webserv-V1/Webserv/wiki/%ED%94%84%EB%A1%9C%EC%A0%9D%ED%8A%B8-%EB%AA%85%EC%84%B8%EC%84%9C) 프로젝트에서 구현한 내용들을 확인할 수 있습니다. 
 
 
 ### 1-5. 서버 conf파일 작성예시 :
