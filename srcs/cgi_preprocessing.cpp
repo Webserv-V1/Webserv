@@ -1,5 +1,5 @@
 #include "../include/cgi_preprocessing.hpp"
-
+ 
 CGI_preprocessing::CGI_preprocessing(request &rq, conf_index &cf_i)
 {
 	char path[256];
