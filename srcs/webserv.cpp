@@ -1,4 +1,4 @@
-#include "./include/webserv.hpp"
+#include "../include/webserv.hpp"
 
 bool	connect_socket_and_parsing(connection *cn, request *rq, response *rp)
 {
@@ -127,7 +127,7 @@ void set_m_mt(std::map<std::string, std::string > &m_mt)
 	std::string readLine ="";
 	std::ifstream readFile;
 
-	readFile.open("./mime.types.default");
+	readFile.open(MIME_TYPE_PATH);
 	if (readFile.is_open())
 	{
 		while (getline(readFile, readLine))

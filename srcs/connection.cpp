@@ -1,4 +1,4 @@
-#include "./include/connection.hpp"
+#include "../include/connection.hpp"
 
 connection::connection(config &cf) : server_size(0), fd_max(0), fd_arr(), fdset()
 {

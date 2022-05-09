@@ -1,4 +1,4 @@
-#include "./include/exec_request.hpp"
+#include "../include/exec_request.hpp"
 
 std::string make_GMT_time()
 {
@@ -516,7 +516,6 @@ void exec_autoindex(int &state_code, conf_index &cf_i, std::string &file_data)
 		if(cf_i.autoindex_flag == 1) // cf_i.root_path + cf_i.request_url_remaining 이 폴더 일때만 탐.. 
 		{
 			std::string path_list = "";
-			std::cout << "#### " << state_code  << " #### "<< std::endl;
 			make_folder_list(path_list, cf_i.root_path + "/" + cf_i.request_url_remaining);
 			input_autoindex_data(cf_i, file_data, path_list);
 		}

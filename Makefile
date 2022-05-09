@@ -2,16 +2,17 @@ CXX				= clang++
 RM				= rm -f
 CXXFLAGS		= -Wall -Wextra -Werror -std=c++98
 NAME			= webserv
-
-SRCS			= webserv.cpp parsing.cpp connection.cpp exec_request.cpp request.cpp cgi_preprocessing.cpp
-
+SRCS_DIR		= srcs
+SRCS			= srcs/webserv.cpp srcs/parsing.cpp srcs/connection.cpp srcs/exec_request.cpp srcs/request.cpp srcs/cgi_preprocessing.cpp
 OBJS_DIR		= objs
 
-OBJS			= $(SRCS:%.cpp=$(OBJS_DIR)/%.o)
+OBJS			= $(SRCS:$(SRCS_DIR)/%.cpp=$(OBJS_DIR)/%.o)
+#OBJ         	= $(SRC:$(SRC_DIR)/%.c=$(OBJ_DIR)/%.o)
+#OBJS			= $(SRCS:%.cpp=$(OBJS_DIR)/%.o)
 
-$(OBJS_DIR)/%.o:%.cpp
+$(OBJS_DIR)/%.o: $(SRCS_DIR)/%.cpp
 				@mkdir -p $(OBJS_DIR)
-				$(CXX) $(CXXFLAGS) -c $< -o $(<:%.cpp=$(OBJS_DIR)/%.o)
+				$(CXX) $(CXXFLAGS) -c $< -o $(<:$(SRCS_DIR)/%.cpp=$(OBJS_DIR)/%.o)
 
 all:			$(NAME)
 
